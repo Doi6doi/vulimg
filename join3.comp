@@ -1,0 +1,114 @@
+#version 450
+
+layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
+
+layout (push_constant) uniform Constants {
+   uint width;
+   uint height;
+   uint srcstride;
+   uint dststride;
+   uint index;
+};
+
+layout (binding = 0 ) readonly buffer Source {
+   uint source[];
+};
+
+layout( binding = 1 ) buffer Dest {
+   uint dest[];
+};
+
+uint x, x4, y, so, o;
+
+uint value(uint d, uint i) {
+   switch (i % 4) {
+      case 0: return 0xff & d;
+      case 1: return 0xff & (d>>8); 
+      case 2: return 0xff & (d>>16); 
+      case 3: return 0xff & (d>>24); 
+   }
+}
+
+void setdest03( uint v, uint w ) {
+   dest[o] = dest[o] & 0x00ffff00 | v | (w<<24);
+   ++o;
+}
+
+void setdest1( uint v ) {
+   dest[o] = dest[o] & 0xffff00ff | (v << 8);
+   ++o;
+}
+
+void setdest2( uint v ) {
+   dest[o] = dest[o] & 0xff00ffff | (v << 16);
+   ++o;
+}
+
+void setdestin( uint v0, uint v1, uint v2, uint v3 ) {
+   switch (index) {
+      case 0:
+         setdest03( v0, v1 );
+         setdest2( v2 );
+         setdest1( v3 );
+      break;
+      case 1:
+         setdest1( v0 );
+         setdest03( v1, v2 );
+         setdest2( v3 );
+      break;
+      case 2:
+         setdest2( v0 );
+         setdest1( v1 );
+         setdest03( v2, v3 );
+       break;
+   }
+}
+
+void setdested( uint v0, uint v1, uint v2, uint v3, uint n ) {
+   switch (index) {
+      case 0:
+         setdest03( v0, v1 );
+         if ( 2 < n ) setdest2( v2 );
+      break;
+      case 1:
+         setdest1( v0 );
+         if ( 1 < n ) setdest03( v1, v2 );
+      break;
+      case 2:
+         setdest2( v0 );
+         if ( 1 < n ) setdest1( v1 );
+         if ( 2 < n ) setdest03( v2, v3 );
+       break;
+   }
+}
+
+void inside() {
+   uint d = source[ so ];
+   uint v[4];
+   for (uint i=0; i<4; ++i)
+      v[i] = value( d, i );
+   setdestin( v[0], v[1], v[2], v[3] );
+}
+
+void edge() {
+   if ( width <= x4 ) return;
+   uint d = source[ so ];
+   uint v[4] = {0,0,0,0};
+   uint n = width-x4;
+   for (int i=0; i<n; ++i)
+      v[i] = value( d, i );
+   setdested( v[0], v[1], v[2], v[3], n );
+}
+
+void main() {
+   y = gl_GlobalInvocationID.y;
+   if ( height <= y ) return;
+   x = gl_GlobalInvocationID.x;
+   x4 = 4*x;
+   so = y*srcstride/4 + x;
+   o = y*dststride/4 + x*3;
+   if ( x4 <= width-4 )
+      inside();
+      else edge();
+}
+      

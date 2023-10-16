@@ -1,0 +1,57 @@
+include Makefile.defs
+
+# vulcomp header directory
+VCP_INCLUDE=../vulcmp
+# vulcomp library directory
+VCP_LIB=../vulcmp
+
+COMPS=copy grow1 join3
+
+CC=gcc -I$(VCP_INCLUDE) -L$(VCP_LIB)
+GLSLC=glslc
+RM=rm -f
+EH=@echo
+XXD=xxd
+
+MLIN=make -f Makefile.linux
+MDEB=make
+LIB=lib$(NAME).so
+
+build: $(LIB)
+
+clean:
+	$(RM) $(LIB) *.o *.inc *.spv
+	cd test && $(MLIN) clean
+	cd debian && $(MDEB) clean
+
+test: build
+	cd test && $(MLIN)
+
+debian: build
+	cd debian && $(MDEB)
+
+help:
+	$(EH) ''
+	$(EH) 'Make targets:'
+	$(EH) '   build: build library'
+	$(EH) '   clean: clean directory'
+	$(EH) '   test: run tests'
+	$(EH) '   debian: build debian package (.deb)'
+	$(EH) ''
+
+%.inc: %.spv
+	$(XXD) -i $< > $@
+
+%.spv: %.comp
+	$(GLSLC) -o $@ $<
+
+vulimg.o: vulimg.c vulimg.h $(COMPS:=.inc)
+	$(CC) -c -fPIC -Wall -o $@ $<
+
+$(LIB): vulimg.o
+	$(CC) -shared -o $@ $^ -lvulcmp
+
+.PHONY: test
+
+head:
+	$(MAKE) 2>&1 | head -n 30

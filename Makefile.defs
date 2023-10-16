@@ -1,0 +1,7 @@
+NAME=vulimg
+VER=0.9
+ARCH=x64
+LARCH=amd64
+MEMAIL=doinospam@gmail.com
+MNAME=Zoltán Várnagy
+DESC=Image functions with vulcmp

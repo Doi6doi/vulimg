@@ -1,0 +1,28 @@
+#version 450
+
+layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
+
+layout (push_constant) uniform Constants {
+   uint width;
+   uint height;
+   uint xscale;
+   uint yscale;
+   uint xrest;
+   uint yrest;
+};
+
+layout (binding = 0 ) readonly buffer Source {
+   uint source[];
+};
+
+layout( binding = 1 ) writeonly buffer Dest {
+   uint dest[];
+};
+
+void main() {
+   uint y = gl_GlobalInvocationID.y;
+   if ( height <= y ) return;
+   uint x = gl_GlobalInvocationID.x;
+   if ( width <= x ) return;
+   dest[ dstoff + y*dstwidth ] = source[ srcoff + y*srcwidth ];
+}

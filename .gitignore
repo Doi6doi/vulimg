@@ -1,0 +1,4 @@
+*.inc
+*.so
+*.o
+./Makefile
