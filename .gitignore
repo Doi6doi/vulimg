@@ -1,4 +1,4 @@
 *.inc
 *.so
 *.o
-./Makefile
+Makefile
