@@ -2,3 +2,4 @@
 *.so
 *.o
 Makefile
+vulimg.geany

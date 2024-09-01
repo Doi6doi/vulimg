@@ -1,0 +1,61 @@
+#version 450
+
+layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
+
+layout (push_constant) uniform Constants {
+   uint width;
+   uint height;
+   uint srcstride;
+   uint dststride;
+   uint index;
+};
+
+layout (binding = 0 ) readonly buffer Source {
+   uint source[];
+};
+
+layout( binding = 1 ) writeonly buffer Dest {
+   uint dest[];
+};
+
+uint x, x4, y, so, o;
+
+uint value(uint d) {
+   uint dd = 3*d+index;
+   uint v = source[ so+dd/4 ];
+   return bitfieldExtract( v, int(8*(dd%4)), 8); 
+}
+
+void setdest( uint v0, uint v1, uint v2, uint v3 ) {
+   dest[o] = v0 << 24 | v1 << 16 | v2 << 8 | v1;
+}
+
+void inside() {
+   uint v[4];
+   for (uint i=0; i<4; ++i)
+      v[i] = value( i );
+   setdest( v[0], v[1], v[2], v[3] );
+}
+
+void edge() {
+   if ( width <= x4 ) return;
+   uint v[4] = {0,0,0,0};
+   uint n = width-x4;
+   for (int i=0; i<n; ++i)
+      v[i] = value( i );
+   setdest( v[0], v[1], v[2], v[3] );
+}
+
+void main() {
+   y = gl_GlobalInvocationID.y;
+   if ( height <= y ) return;
+   x = gl_GlobalInvocationID.x;
+   x4 = 4*x;
+   if ( width <= x4 ) return;
+   so = y*srcstride/4 + x*3;
+   o = y*dststride/4 + x;
+   if ( x4 <= width-4 )
+      inside();
+      else edge();
+}
+      

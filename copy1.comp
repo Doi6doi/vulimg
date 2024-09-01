@@ -1,0 +1,61 @@
+#version 450
+
+layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
+
+layout (push_constant) uniform Constants {
+   uint srcOff;
+   uint srcShift;
+   uint srcStride;
+   uint dstOff;
+   uint dstShift;
+   uint dstStride;
+   uint width;
+   uint height;
+};
+
+layout (binding = 0 ) readonly buffer Source {
+   uint source[];
+};
+
+layout( binding = 1 ) buffer Dest {
+   uint dest[];
+};
+
+uint srcBits( int at, uint y, int n ) {
+   at += int(srcShift);
+   uint sm = at % 32;
+   uint si = (srcOff + y * srcStride + at) / 32;
+   int ss = 32-int(sm);
+   if ( n <= ss ) {
+      return bitfieldExtract( source[si], ss-n, n );
+   } else {
+      int nss = n-ss;
+      return bitfieldExtract( source[si], 0, ss ) << nss
+         | bitfieldExtract( source[si+1], 32-nss, nss );
+   }
+}
+         
+   
+   
+   
+void main() {
+   uint y = gl_GlobalInvocationID.y;
+   if ( height <= y ) return;
+   uint x = gl_GlobalInvocationID.x;
+   int at = int( x*32 - dstShift );
+   int rest = int( width - at );
+   if ( 0 >= rest ) return;
+   int r = 0;
+   int n = 32;
+   if ( 32 > rest ) {
+      n = rest;
+      r = 32 - rest;
+   }
+   if ( 0 == x )
+      n -= int(dstShift);
+   uint v = srcBits( at, y, n );
+   uint di = dstOff + y * dstStride + x;
+   if ( 32 == n )
+      dest[ di ] = v;
+      else dest[di] = bitfieldInsert( dest[di], v, r, n );
+}
