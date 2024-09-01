@@ -1,4 +1,5 @@
 TESTS=basic
+TEMPS=smiley.raw smiley2.bmp
 
 LIBS=vulcmp vultools vulimg
 INCDIR=$(LIBS:%=../../%)
@@ -16,7 +17,7 @@ RFL=LD_LIBRARY_PATH=$(subst $(SPACE),:,$(LIBDIR))
 test: $(TESTS:=.run)
 
 clean:
-	$(RM) $(TESTS)
+	$(RM) $(TESTS) $(TEMPS)
 
 basic: basic.c
 	$(CC) $(CFL) -o $@ $< $(LFL)

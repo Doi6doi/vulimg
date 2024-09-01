@@ -120,10 +120,12 @@ int vigResult = VIG_SUCCESS;
 #include "join3.inc"
 #include "plane3.inc"
 
+/*
 static void ewrite( VcpStr msg ) {
    fprintf( stderr, "%s\n", msg );
    fflush( stderr );
 }
+*/
 
 int vig_error() { return vigResult; }
 
@@ -238,7 +240,6 @@ VigImage vig_image_create( VigCoord width, VigCoord height, VigPixel pixel ) {
    if ( ! ( ret->stor = vcp_storage_create( vulimg.vulcomp, sz )))
       return NULL;
    vigResult = VIG_HOSTMEM;
-ewrite("reall2");   
    VigImage * imgs = REALLOC( vulimg.imgs, VigImage, vulimg.nimg+1 );
    if ( ! imgs ) return NULL;
    imgs[ vulimg.nimg++ ] = ret;
@@ -381,11 +382,9 @@ static void vig_done_task( VcpTask * t ) {
 
 void vig_done() {
    if ( ! vulimg.started ) return;
-ewrite("freeimgs");   
    for (int i=vulimg.nimg-1; 0 <= i; --i)
       vig_image_free( vulimg.imgs[i] );
    vulimg.imgs = REALLOC( vulimg.imgs, VigImage, 0 );
-ewrite("freetasks");   
    vig_done_task( & vulimg.copy1 );
    vig_done_task( & vulimg.copy32 );
    vig_done_task( & vulimg.grow1 );
@@ -458,16 +457,12 @@ bool vig_image_scale( VigImage src, VigImage dst ) {
       return vig_image_copy( src, dst );
    uint32_t ps = vig_pixel_size( dst->pixel );
    uint32_t us;
-DEBUG("vig_image_scale %d", 2 );   
    VcpTask t = vig_scale_task( & pars, ps, & us );
    if ( ! t ) return false;
-DEBUG("vig_image_scale %d", 3 );   
    VcpStorage ss[2] = { src->stor, dst->stor };
    vcp_task_setup( t, ss, DIVC( DIVC( pars.dstwidth, us), GROW_GX ),
 	   DIVC( pars.dstheight, GROW_GY ), 1, & pars );
-DEBUG("vig_image_scale %d", 4 );   
    bool ret = vig_run( t );
-DEBUG("vig_image_scale %d", 5 );   
    return ret;
 }
 
@@ -495,7 +490,6 @@ static VcpTask vig_plane3() {
 static VcpTask vig_join_task( VigPixel dpix, VigPixel spix, 
    VigPlane plane, VigJoinParams pars, uint32_t * unitsize ) 
 {
-DEBUG("vig_join_task %d %d\n", 1, spix );
    switch ( spix ) {
 	  case vix_8:
 	  case vix_g8:
@@ -503,7 +497,6 @@ DEBUG("vig_join_task %d %d\n", 1, spix );
 	  default:
 	     return NULL;
    }
-DEBUG("vig_join_task %d %d %d\n", 2, dpix, vix_ybr24 );
    switch ( dpix ) {
 	  case vix_ybr24:
 	     switch ( plane ) {
@@ -532,7 +525,6 @@ DEBUG("vig_join_task %d %d %d\n", 2, dpix, vix_ybr24 );
 static VcpTask vig_plane_task( VigPixel spix, VigPixel dpix, 
    VigPlane plane, VigJoinParams pars, uint32_t * unitsize ) 
 {
-DEBUG("vig_plane_task %d", 1 );
    switch ( dpix ) {
 	  case vix_8:
 	  case vix_g8:
@@ -540,7 +532,6 @@ DEBUG("vig_plane_task %d", 1 );
 	  default:
 	     return NULL;
    }
-DEBUG("vig_plane_task %d %d", 2, spix );
    switch ( spix ) {
 	  case vix_ybr24:
 	     switch ( plane ) {
@@ -567,13 +558,10 @@ DEBUG("vig_plane_task %d %d", 2, spix );
 
 
 bool vig_image_join( VigImage dst, VigImage src, VigPlane plane ) {
-DEBUG("vig_image_join %d\n", 1 );	
    if ( ! vig_inited() ) return false;
-DEBUG("vig_image_join %d %d %d %d %d\n", 2, src->width, dst->width, src->height, dst->height );	
    vigResult = VIG_COORDERR;
    if ( src->width < dst->width || src->height < dst->height )
       return false;
-DEBUG("vig_image_join %d\n", 3 );	
    struct VigJoinParams pars = {
 	  .width = src->width,
 	  .height = src->height,
@@ -582,14 +570,11 @@ DEBUG("vig_image_join %d\n", 3 );
    };
    vigResult = VIG_PIXELERR;
    uint32_t us;
-DEBUG("vig_image_join %d\n", 4 );	
    VcpTask t = vig_join_task( dst->pixel, src->pixel, plane, & pars, &us );
    if ( ! t ) return false;
-DEBUG("vig_image_join %d\n", 5 );	
    VcpStorage ss[2] = { src->stor, dst->stor };
    vcp_task_setup( t, ss, DIVC( DIVC( pars.width, us ), JOIN_GX ),
 	   DIVC( pars.height, JOIN_GY ), 1, & pars );
-DEBUG("vig_image_join %d\n", 6 );	
    return vig_run( t );
 }
 
@@ -619,28 +604,19 @@ bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst ) {
 
 
 void vig_image_free( VigImage img ) {
-ewrite( "image_free" );
-DEBUG("imgs:%p img:%p stor:%p", vulimg.imgs, img, img->stor );   
    if ( ! img ) return;
    VigImage * imgs = vulimg.imgs;
    int n = vulimg.nimg;
-DEBUG("n:%d", n );   
    for ( int i=n-1; 0<=i; --i ) {
 	  if ( imgs[i] == img ) {
-DEBUG("found:%d", i );   
 		 imgs[i] = imgs[n-1];
 		 vulimg.imgs = REALLOC( imgs, VigImage, n-1 );
-DEBUG("imgs:%p", vulimg.imgs );   
 		 -- vulimg.nimg;
-ewrite("ret");
 	     break;
 	  }
    }
-DEBUG("removed img:%p", img );   
-DEBUG("removed stor:%p", img->stor);   
    if ( img->own )
       vcp_storage_free( img->stor );
-ewrite("freed");   
    img = REALLOC( img, struct VigImage, 0 );
 }
 
@@ -656,7 +632,6 @@ bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write ) {
       .address = L32( hsz )
    };
    vigResult = VIG_STREAMERR;
-ewrite("write filehead");   
    if ( ! vtl_write_block( stream, write, &bfh, sizeof(bfh))) return false;
    struct VigBmpInfoHeader bih = {
 	  .size = L32( sizeof( struct VigBmpInfoHeader )),
@@ -671,9 +646,7 @@ ewrite("write filehead");
 	  .colors = 0,
 	  .impcols = 0
    };
-DEBUG("write infohead s:%ld bpp:%d", sizeof( bih ), bih.bpp);   
    if ( ! vtl_write_block( stream, write, &bih, sizeof(bih))) return false;
-ewrite("write data");   
    void * data = vcp_storage_address( img->stor );
    if ( ! vtl_write_block( stream, write, data, isz )) return false;
    vigResult = VIG_SUCCESS;
