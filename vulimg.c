@@ -20,7 +20,7 @@
 #define JOIN_GX 16
 #define JOIN_GY 16
 
-typedef struct {
+typedef struct VigVulimg {
    VcpVulcomp vulcomp;
    uint32_t nimg;
    VigImage * imgs;
@@ -30,7 +30,7 @@ typedef struct {
    VcpTask grow1;
    VcpTask join3;
    VcpTask plane3;
-} Vig_Vulimg;
+} * VigVulimg;
 
 
 struct VigImage {
@@ -66,7 +66,7 @@ typedef struct VigDiffParams {
    uint32_t height;
 } * VigDiffParams;
 
-typedef struct {
+typedef struct VigScaleParams {
    uint32_t srcstride;
    uint32_t dstwidth;
    uint32_t dstheight;
@@ -75,30 +75,26 @@ typedef struct {
    uint32_t yscale;
    uint32_t xrest;
    uint32_t yrest;
-} Vig_ScaleParams;
-typedef Vig_ScaleParams * VigScaleParams;	
-
+} * VigScaleParams;
  
-typedef struct {
+typedef struct VigJoinParams {
    uint32_t width;
    uint32_t height;
    uint32_t srcstride;
    uint32_t dststride;
    uint32_t index;
-} Vig_JoinParams;
-typedef Vig_JoinParams * VigJoinParams;	
+} * VigJoinParams;
 
 #pragma pack(push,1)
 
-typedef struct {
+typedef struct VigBmpFileHeader {
    uint16_t magic;
    uint32_t size;
    uint32_t reserved;
    uint32_t address;
-} Vig_BmpFileHeader;
-typedef Vig_BmpFileHeader * VigBmpFileHeader;
+} * VigBmpFileHeader;
 
-typedef struct {
+typedef struct VigBmpInfoHeader {
    uint32_t size;
    uint32_t width;
    uint32_t height;
@@ -110,13 +106,11 @@ typedef struct {
    int32_t ppmy;
    uint32_t colors;
    uint32_t impcols;
-} Vig_BmpInfoHeader;
-typedef struct Vig_BmpInfoHeader * VigBmpInfoHeader;
+} * VigBmpInfoHeader;
 
 #pragma pack(pop)
-
  
-Vig_Vulimg vulimg = { .started=false };
+struct VigVulimg vulimg = { .started=false };
 
 int vigResult = VIG_SUCCESS;
 
@@ -125,6 +119,12 @@ int vigResult = VIG_SUCCESS;
 #include "grow1.inc"
 #include "join3.inc"
 #include "plane3.inc"
+
+/*static void ewrite( VcpStr msg ) {
+   fprintf( stderr, "%s\n", msg );
+   fflush( stderr );
+}
+*/
 
 int vig_error() { return vigResult; }
 
@@ -227,10 +227,13 @@ VigImage vig_image_create( VigCoord width, VigCoord height, VigPixel pixel ) {
    vigResult = VIG_HOSTMEM;
    VigImage ret = REALLOC( NULL, struct VigImage, 1 );
    if ( ! ret ) return NULL;
+   ret->pixel = pixel;
    ret->width = width;
    ret->height = height;
+   ret->own = true;
+   ret->offset = 0;
+   ret->shift = 0;
    ret->stride = 4*DIVC( vig_pixel_size( pixel )*width, 32 );
-   ret->pixel = pixel;
    uint64_t sz = height * ret->stride;
    vigResult = VIG_STORAGEERR;
    if ( ! ( ret->stor = vcp_storage_create( vulimg.vulcomp, sz )))
@@ -426,7 +429,7 @@ static VcpTask vig_scale_task( VigScaleParams pars, uint32_t pixelsize, uint32_t
 	     case 1:
             if ( ! vulimg.grow1 )
 	           vulimg.grow1 = vcp_task_create( vulimg.vulcomp,
-	              grow1_spv, grow1_spv_len, "main", 2, sizeof( Vig_ScaleParams ) );
+	              grow1_spv, grow1_spv_len, "main", 2, sizeof( struct VigScaleParams ) );
 	     return vulimg.grow1;
 	  }
    }
@@ -439,8 +442,7 @@ bool vig_image_scale( VigImage src, VigImage dst ) {
    vigResult = VIG_PIXELERR;
    if ( src->pixel != dst->pixel ) return false;
    vigResult = VIG_COORDERR;
-DEBUG("vig_image_scale %d", 1 );   
-   Vig_ScaleParams pars = {
+   struct VigScaleParams pars = {
 	  .srcstride = src->stride,
 	  .dstwidth = dst->width,
 	  .dstheight = dst->height,
@@ -472,7 +474,7 @@ DEBUG("vig_image_scale %d", 5 );
 static VcpTask vig_join3() {
    if ( ! vulimg.join3 ) {
       vulimg.join3 = vcp_task_create( vulimg.vulcomp,
-         join3_spv, join3_spv_len, "main", 2, sizeof( Vig_JoinParams ));
+         join3_spv, join3_spv_len, "main", 2, sizeof( struct VigJoinParams ));
    }
    return vulimg.join3;
 }
@@ -481,7 +483,7 @@ static VcpTask vig_join3() {
 static VcpTask vig_plane3() {
    if ( ! vulimg.plane3 ) {
 	  vulimg.plane3 = vcp_task_create( vulimg.vulcomp,
-	     plane3_spv, plane3_spv_len, "main", 2, sizeof( Vig_JoinParams ));
+	     plane3_spv, plane3_spv_len, "main", 2, sizeof( struct VigJoinParams ));
    }
    return vulimg.plane3;
 }
@@ -570,7 +572,7 @@ DEBUG("vig_image_join %d %d %d %d %d\n", 2, src->width, dst->width, src->height,
    if ( src->width < dst->width || src->height < dst->height )
       return false;
 DEBUG("vig_image_join %d\n", 3 );	
-   Vig_JoinParams pars = {
+   struct VigJoinParams pars = {
 	  .width = src->width,
 	  .height = src->height,
 	  .srcstride = src->stride,
@@ -592,7 +594,7 @@ DEBUG("vig_image_join %d\n", 6 );
 
 bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst ) {
    if ( ! vig_inited() ) return false;
-   Vig_JoinParams pars = {
+   struct VigJoinParams pars = {
 	  .width = MIN( src->width, dst->width ),
 	  .height = MIN( src->height, dst->height ),
 	  .srcstride = src->stride,
@@ -626,17 +628,17 @@ void vig_image_free( VigImage img ) {
 	     return;
 	  }
    }
-   vcp_storage_free( img->stor );
+   if ( img->own )
+      vcp_storage_free( img->stor );
    img = REALLOC( img, struct VigImage, 0 );
 }
 
 
 bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write ) {
    if ( ! vig_isimage( img )) return false;
-   uint32_t hsz = sizeof( Vig_BmpFileHeader )+sizeof( Vig_BmpInfoHeader );
+   uint32_t hsz = sizeof( struct VigBmpFileHeader )+sizeof( struct VigBmpInfoHeader );
    uint32_t isz = img->stride * img->height;
-DEBUG("vig_bmp_write %d %d %d %d", 1, hsz, isz, L32( isz ) );
-   Vig_BmpFileHeader bfh = {
+   struct VigBmpFileHeader bfh = {
       .magic = L16( 0x4d42 ),
       .size = L32( hsz + isz ),
       .reserved = 0,
@@ -644,8 +646,8 @@ DEBUG("vig_bmp_write %d %d %d %d", 1, hsz, isz, L32( isz ) );
    };
    vigResult = VIG_STREAMERR;
    if ( ! vtl_write_block( stream, write, &bfh, sizeof(bfh))) return false;
-   Vig_BmpInfoHeader bih = {
-	  .size = L32( sizeof( Vig_BmpInfoHeader )),
+   struct VigBmpInfoHeader bih = {
+	  .size = L32( sizeof( struct VigBmpInfoHeader )),
 	  .width = L32( img->width ),
 	  .height = L32( img->height ),
 	  .planes = L16( 1 ),
@@ -662,6 +664,40 @@ DEBUG("vig_bmp_write %d %d %d %d", 1, hsz, isz, L32( isz ) );
    if ( ! vtl_write_block( stream, write, data, isz )) return false;
    return true;
 }
+
+static VigPixel vig_bmp_pixel( int bpp ) {
+   switch ( bpp ) {
+      case 1: return vix_1;
+      case 8: return vix_g8;
+      case 24: return vix_rgb24;
+      case 32: return vix_rgba32;
+      default: return vix_Unknown;
+   }
+}
+
+VigImage vig_bmp_read( void * stream, VtlStreamOp read ) {
+   vigResult = VIG_BMPERR;
+   struct VigBmpFileHeader bfh;
+   if ( ! vtl_read_block( stream, read, &bfh, sizeof(bfh))) return false;
+   if ( 0x4d42 != bfh.magic ) return NULL;
+   struct VigBmpInfoHeader bih;
+   if ( ! vtl_read_block( stream, read, &bih, sizeof(bih))) return false;
+   if ( sizeof(bih) != bih.size ) return NULL;
+   if ( 1 != bih.planes ) return NULL;
+   if ( 0 != bih.compression ) return NULL;
+   VigPixel pix = vig_bmp_pixel( bih.bpp );
+   if ( vix_Unknown == pix ) return NULL;
+   int rest = bfh.address - sizeof(bfh)+sizeof(bih);
+   if ( 0 > rest ) return NULL;
+   if ( ! vtl_read_skip( stream, read, rest )) return NULL;
+   VigImage ret = vig_image_create( bih.width, bih.height, pix );
+   if ( ! ret ) return NULL;
+   if ( ! vig_raw_read( ret, stream, read, true )) return NULL;
+   vigResult = VIG_SUCCESS;
+   return ret;
+}
+
+
 
 bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad ) {
    if ( vig_shifted( img )) return false;

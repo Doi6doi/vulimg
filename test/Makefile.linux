@@ -1,4 +1,27 @@
+TESTS=basic
 
-test:
+LIBS=vulcmp vultools vulimg
+INCDIR=$(LIBS:%=../../%)
+LIBDIR=$(INCDIR)
+
+RM=rm -f
+CC=gcc
+SPACE=$(eval) $(eval)
+
+CFL=$(INCDIR:%=-I%) $(LIBDIR:%=-L%)
+LFL=$(LIBS:%=-l%)
+RFL=LD_LIBRARY_PATH=$(subst $(SPACE),:,$(LIBDIR))
+
+test: $(TESTS:=.run)
 
 clean:
+	$(RM) $(TESTS)
+
+basic: basic.c
+	$(CC) $(CFL) -o $@ $< $(LFL)
+
+%.run: %
+	$(RFL) ./$<
+
+
+.PHONY: %.run

@@ -5,8 +5,8 @@
 #include <vultools.h>
 
 typedef uint32_t VigCoord;
-typedef enum Vig_Pixel { vix_Unknown, vix_8, vix_g8, vix_rgb24, vix_rgba32, vix_ybr24 } VigPixel;
-typedef enum Vig_Plane { vpl_Unknown, vpl_R, vpl_G, vpl_B, vpl_Y, vpl_Cb, vpl_Cr } VigPlane;
+typedef enum VigPixel { vix_Unknown, vix_1, vix_8, vix_g8, vix_rgb24, vix_rgba32, vix_ybr24 } VigPixel;
+typedef enum VigPlane { vpl_Unknown, vpl_R, vpl_G, vpl_B, vpl_Y, vpl_Cb, vpl_Cr } VigPlane;
 
 typedef struct VigImage * VigImage;
 
@@ -20,6 +20,7 @@ typedef struct VigImage * VigImage;
 #define VIG_TASKERR    -11005
 #define VIG_NOIMG      -11006
 #define VIG_SHIFTERR   -11007
+#define VIG_BMPERR     -11008
 
 /// vig last error code
 int vig_error();
