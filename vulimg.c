@@ -663,7 +663,7 @@ ewrite("write filehead");
 	  .width = L32( img->width ),
 	  .height = L32( img->height ),
 	  .planes = L16( 1 ),
-	  .bpp = 8*vig_pixel_size( img->pixel ),
+	  .bpp = vig_pixel_size( img->pixel ),
 	  .compression = 0,
 	  .imgsize = L32( isz ),
 	  .ppmx = L32( 2835 ),
@@ -671,7 +671,7 @@ ewrite("write filehead");
 	  .colors = 0,
 	  .impcols = 0
    };
-ewrite("write infohead");   
+DEBUG("write infohead s:%ld bpp:%d", sizeof( bih ), bih.bpp);   
    if ( ! vtl_write_block( stream, write, &bih, sizeof(bih))) return false;
 ewrite("write data");   
    void * data = vcp_storage_address( img->stor );
