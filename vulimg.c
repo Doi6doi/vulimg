@@ -120,11 +120,10 @@ int vigResult = VIG_SUCCESS;
 #include "join3.inc"
 #include "plane3.inc"
 
-/*static void ewrite( VcpStr msg ) {
+static void ewrite( VcpStr msg ) {
    fprintf( stderr, "%s\n", msg );
    fflush( stderr );
 }
-*/
 
 int vig_error() { return vigResult; }
 
@@ -682,12 +681,15 @@ VigImage vig_bmp_read( void * stream, VtlStreamOp read ) {
    if ( 0x4d42 != bfh.magic ) return NULL;
    struct VigBmpInfoHeader bih;
    if ( ! vtl_read_block( stream, read, &bih, sizeof(bih))) return false;
-   if ( sizeof(bih) != bih.size ) return NULL;
+   if ( sizeof(bih) > bih.size ) return NULL;
    if ( 1 != bih.planes ) return NULL;
-   if ( 0 != bih.compression ) return NULL;
+   switch (bih.compression) {
+      case 0: case 3: break;
+      default: return NULL;
+   }
    VigPixel pix = vig_bmp_pixel( bih.bpp );
    if ( vix_Unknown == pix ) return NULL;
-   int rest = bfh.address - sizeof(bfh)+sizeof(bih);
+   int rest = bfh.address - (sizeof(bfh)+sizeof(bih));
    if ( 0 > rest ) return NULL;
    if ( ! vtl_read_skip( stream, read, rest )) return NULL;
    VigImage ret = vig_image_create( bih.width, bih.height, pix );
