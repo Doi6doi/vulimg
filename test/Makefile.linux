@@ -5,12 +5,13 @@ INCDIR=$(LIBS:%=../../%)
 LIBDIR=$(INCDIR)
 
 RM=rm -f
-CC=gcc
+CC=gcc -g
 SPACE=$(eval) $(eval)
 
 CFL=$(INCDIR:%=-I%) $(LIBDIR:%=-L%)
 LFL=$(LIBS:%=-l%)
 RFL=LD_LIBRARY_PATH=$(subst $(SPACE),:,$(LIBDIR))
+
 
 test: $(TESTS:=.run)
 

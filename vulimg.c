@@ -238,6 +238,7 @@ VigImage vig_image_create( VigCoord width, VigCoord height, VigPixel pixel ) {
    if ( ! ( ret->stor = vcp_storage_create( vulimg.vulcomp, sz )))
       return NULL;
    vigResult = VIG_HOSTMEM;
+ewrite("reall2");   
    VigImage * imgs = REALLOC( vulimg.imgs, VigImage, vulimg.nimg+1 );
    if ( ! imgs ) return NULL;
    imgs[ vulimg.nimg++ ] = ret;
@@ -380,9 +381,11 @@ static void vig_done_task( VcpTask * t ) {
 
 void vig_done() {
    if ( ! vulimg.started ) return;
-   for ( ; 0<= vulimg.nimg; --vulimg.nimg)
-      vig_image_free( vulimg.imgs[ vulimg.nimg-1 ] );
+ewrite("freeimgs");   
+   for (int i=vulimg.nimg-1; 0 <= i; --i)
+      vig_image_free( vulimg.imgs[i] );
    vulimg.imgs = REALLOC( vulimg.imgs, VigImage, 0 );
+ewrite("freetasks");   
    vig_done_task( & vulimg.copy1 );
    vig_done_task( & vulimg.copy32 );
    vig_done_task( & vulimg.grow1 );
@@ -616,19 +619,28 @@ bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst ) {
 
 
 void vig_image_free( VigImage img ) {
+ewrite( "image_free" );
+DEBUG("imgs:%p img:%p stor:%p", vulimg.imgs, img, img->stor );   
    if ( ! img ) return;
    VigImage * imgs = vulimg.imgs;
    int n = vulimg.nimg;
-   for ( int i=n-1; 0 <=i; --i ) {
+DEBUG("n:%d", n );   
+   for ( int i=n-1; 0<=i; --i ) {
 	  if ( imgs[i] == img ) {
+DEBUG("found:%d", i );   
 		 imgs[i] = imgs[n-1];
 		 vulimg.imgs = REALLOC( imgs, VigImage, n-1 );
+DEBUG("imgs:%p", vulimg.imgs );   
 		 -- vulimg.nimg;
-	     return;
+ewrite("ret");
+	     break;
 	  }
    }
+DEBUG("removed img:%p", img );   
+DEBUG("removed stor:%p", img->stor);   
    if ( img->own )
       vcp_storage_free( img->stor );
+ewrite("freed");   
    img = REALLOC( img, struct VigImage, 0 );
 }
 
@@ -644,6 +656,7 @@ bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write ) {
       .address = L32( hsz )
    };
    vigResult = VIG_STREAMERR;
+ewrite("write filehead");   
    if ( ! vtl_write_block( stream, write, &bfh, sizeof(bfh))) return false;
    struct VigBmpInfoHeader bih = {
 	  .size = L32( sizeof( struct VigBmpInfoHeader )),
@@ -658,9 +671,12 @@ bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write ) {
 	  .colors = 0,
 	  .impcols = 0
    };
+ewrite("write infohead");   
    if ( ! vtl_write_block( stream, write, &bih, sizeof(bih))) return false;
+ewrite("write data");   
    void * data = vcp_storage_address( img->stor );
    if ( ! vtl_write_block( stream, write, data, isz )) return false;
+   vigResult = VIG_SUCCESS;
    return true;
 }
 

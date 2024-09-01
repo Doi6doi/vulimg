@@ -12,8 +12,9 @@ void ewrite( VcpStr msg ) {
 }
 
 int main() {
-ewrite("init");
+ewrite("vcpinit");
    VcpVulcomp v = vcp_init( "basic", VCP_VALIDATION );
+ewrite("viginit");
    vig_init( v );
    vig_check_fail();
 ewrite("read bmp");
@@ -38,8 +39,9 @@ ewrite("write bmp");
    vig_bmp_write( i2, f, vtl_fwrite );
    fclose(f);
    vig_check_fail();
-ewrite("done");
+ewrite("vigdone");
    vig_done();
+ewrite("vcpdone");
    vcp_done( v );
    return 0;
 }
