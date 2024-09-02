@@ -7,7 +7,7 @@ VCP_LIB=../vulcmp
 VTL_INCLUDE=../vultools
 VTL_LIB=../vultools
 
-COMPS=copy1 copy32 grow1 join3 plane3
+COMPS=copy1 copy32 grow1 join3 plane3 trans
 
 CC=gcc -g -I$(VCP_INCLUDE) -L$(VCP_LIB) -I$(VTL_INCLUDE) -L$(VTL_INCLUDE)
 GLSLC=glslc

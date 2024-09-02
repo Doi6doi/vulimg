@@ -10,6 +10,10 @@ typedef enum VigPlane { vpl_Unknown, vpl_R, vpl_G, vpl_B, vpl_Y, vpl_Cb, vpl_Cr 
 
 typedef struct VigImage * VigImage;
 
+typedef struct VigTransform {
+   float sx, ry, rx, sy, dx, dy;
+} * VigTransform;
+
 #define VIG_SUCCESS    VCP_SUCCESS
 #define VIG_HOSTMEM    VCP_HOSTMEM
 #define VIG_STREAMERR  VTL_STREAMERR
@@ -19,7 +23,6 @@ typedef struct VigImage * VigImage;
 #define VIG_PIXELERR   -11004
 #define VIG_TASKERR    -11005
 #define VIG_NOIMG      -11006
-#define VIG_SHIFTERR   -11007
 #define VIG_BMPERR     -11008
 
 /// vig last error code
@@ -64,8 +67,9 @@ bool vig_image_copy( VigImage src, VigImage dst );
 bool vig_image_join( VigImage dst, VigImage src, VigPlane plane );
 /// extract plane from image
 bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst );
-/// scale image
-bool vig_image_scale( VigImage src, VigImage dst );
+
+/// transform image
+bool vig_image_transform( VigImage src, VigImage dst, VigTransform t );
 
 /// reads raw image
 bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad );
