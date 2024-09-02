@@ -1,0 +1,103 @@
+#version 450
+
+#include "vulimgpars.h"
+
+layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
+
+layout (push_constant) uniform Constants {
+   VigImgParam src;
+   VigImgParam dst;
+   VigTransform trans;
+   int compBits;
+   int compCount;
+};
+
+layout (binding = 0 ) readonly buffer Source {
+   uint source[];
+};
+
+layout( binding = 1 ) writeonly buffer Dest {
+   uint dest[];
+};
+
+float getComp( int y, int x, int iComp ) {
+   if ( x < 0 || src.width <= x ) return 0.0;
+   int xComp = x*compCount + iComp;
+   int xBit = xComp * compBits;
+   uint v = source[ y*src.stride + xBit / 32 ];
+   int s = xBit % 32;
+   bitfieldExtract( v,0, compBits );
+   return float( bitfieldExtract( v, 32-s-compBits, compBits ));
+}
+
+float calcCompRow( int y, float x, int iComp ) {
+   if ( y < 0 || src.height <= y ) return 0.0;
+   float mx = trans.sx + trans.rx;
+   int x1, n;
+   if ( -1 > mx ) {
+      x1 = int( x + mx );
+      n = int( -mx )+1;
+   } else if ( 1 < mx ) {
+      x1 = int( x );
+      n = int(mx)+1;
+   } else {
+      float f = fract( x );
+      float ret = getComp( y, int(x), iComp );
+      if ( 0 != f )
+         ret = (1-f)*ret + f*getComp( y, int(x)+1, iComp );
+      return ret;
+   }
+   float ret = 0;
+   for (int i=0; i<n; ++i)
+      ret += getComp( y, x1+i, iComp );
+   if ( 1 == compBits )
+      ret += n/2;
+   return ret / n;
+}
+
+float calcComp( uint y, uint x, int iComp ) {
+  float dx = trans.sx * x + trans.rx * y + trans.dx;
+  float dy = trans.ry * x + trans.sy * y + trans.dy;
+  float my = trans.ry + trans.sy;
+  int y1, n;
+  if ( -1 > my ) {
+     y1 = int( dy+my );
+     n = int(my)+1;
+  } else if ( 1 < my ) {
+     y1 = int( dy );
+     n = int(my)+1;
+  } else {
+     float f = fract( dy );
+     float ret = calcCompRow( int(dy), dx, iComp );
+     if ( 0 != f )
+        ret = (1-f)*ret + f*calcCompRow( int(dy)+1, dx, iComp );
+     return ret;
+  }
+  float ret = 0;
+  for (int i=0; i<n; ++i)
+     ret += calcCompRow( y1+i, dx, iComp );
+  if ( 0 == compBits )
+     ret += n/2;
+  return ret / n;
+}
+         
+void main() {
+   uint y = gl_GlobalInvocationID.y;
+   if ( dst.height <= y ) return;
+   uint x = gl_GlobalInvocationID.x;
+   int xComp = 32*int(x) / compBits;
+   int xPix = xComp / compCount;
+   if ( dst.width <= xPix ) return;
+   int iComp = xComp % compCount;
+   uint ret = 0;
+   for (int i=0; i<32; i += compBits) {
+      uint v = uint( calcComp( y, xPix, iComp ) );
+      ret = bitfieldInsert( ret, v, 32-i-compBits, compBits );
+      if ( ++iComp == compCount ) {
+         ++xPix;
+         iComp = 0;
+      }
+   }
+   dest[ y * dst.stride + x ] = ret;
+}
+   
