@@ -71,6 +71,9 @@ bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst );
 /// transform image
 bool vig_image_transform( VigImage src, VigImage dst, VigTransform t );
 
+/// difference of two images
+bool vig_image_diff( VigImage a, VigImage b, VigImage dst );
+
 /// reads raw image
 bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad );
 /// writes raw image

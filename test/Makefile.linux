@@ -1,5 +1,14 @@
-TESTS=basic
+TESTS=basic diff
 TEMPS=smiley.raw smiley2.bmp
+
+FFMPEG=ffmpeg
+FFPLAY=ffplay
+
+IN=car.mp4
+WIDTH=1920
+HEIGHT=1080
+FPIX=rgb24
+VPIX=rgb24
 
 LIBS=vulcmp vultools vulimg
 INCDIR=$(LIBS:%=../../%)
@@ -13,14 +22,21 @@ CFL=$(INCDIR:%=-I%) $(LIBDIR:%=-L%)
 LFL=$(LIBS:%=-l%)
 RFL=LD_LIBRARY_PATH=$(subst $(SPACE),:,$(LIBDIR))
 
-
 test: $(TESTS:=.run)
 
 clean:
 	$(RM) $(TESTS) $(TEMPS)
 
 basic: basic.c
-	$(CC) $(CFL) -o $@ $< $(LFL)
+	$(CC) $(CFL) -o $@ $^ $(LFL)
+
+diff: diff.c frameproc.c
+	$(CC) $(CFL) -o $@ $^ $(LFL)
+
+diff.run: diff
+	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
+        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
+        | $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
 
 %.run: %
 	$(RFL) ./$<

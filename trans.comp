@@ -36,10 +36,10 @@ float calcCompRow( int y, float x, int iComp ) {
    int x1, n;
    if ( -1 > mx ) {
       x1 = int( x + mx );
-      n = int( -mx )+1;
+      n = int(-mx);
    } else if ( 1 < mx ) {
       x1 = int( x );
-      n = int(mx)+1;
+      n = int(mx);
    } else {
       float f = fract( x );
       float ret = getComp( y, int(x), iComp );
@@ -62,10 +62,10 @@ float calcComp( uint y, uint x, int iComp ) {
   int y1, n;
   if ( -1 > my ) {
      y1 = int( dy+my );
-     n = int(my)+1;
+     n = int(-my);
   } else if ( 1 < my ) {
      y1 = int( dy );
-     n = int(my)+1;
+     n = int(my);
   } else {
      float f = fract( dy );
      float ret = calcCompRow( int(dy), dx, iComp );
