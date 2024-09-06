@@ -1,0 +1,42 @@
+#version 450
+
+#include "vulimgpars.h"
+
+layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
+
+layout (push_constant) uniform Constants {
+   VigImgParam img;
+   int compBits;
+};
+
+layout (binding = 0 ) readonly buffer A {
+   uint a[];
+};
+
+layout (binding = 1 ) readonly buffer B {
+   uint b[];
+};
+
+layout( binding = 2 ) writeonly buffer Dest {
+   uint dest[];
+};
+         
+void main() {
+   uint y = gl_GlobalInvocationID.y;
+   if ( img.height <= y ) return;
+   uint stride = img.stride;
+   uint x = gl_GlobalInvocationID.x;
+   if ( stride <= x ) return;
+   uint i = y * stride + x;
+   uint av = a[ i ];
+   uint bv = b[ i ];
+   uint d = 0;
+   for (int i=0; i < 32; i += compBits) {
+      uint ab = bitfieldExtract( av, i, compBits );
+      uint bb = bitfieldExtract( bv, i, compBits );
+      uint db = ab < bb ? bb-ab : ab-bb;
+      d = bitfieldInsert( d, db, i, compBits );
+   }
+   dest[ i ] = d;
+}
+   
