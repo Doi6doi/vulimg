@@ -7,8 +7,8 @@ FFPLAY=ffplay
 IN=car.mp4
 WIDTH=1920
 HEIGHT=1080
-FPIX=rgb24
-VPIX=rgb24
+FPIX=gray
+VPIX=g8
 
 LIBS=vulcmp vultools vulimg
 INCDIR=$(LIBS:%=../../%)

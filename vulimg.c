@@ -778,14 +778,15 @@ VigImage vig_bmp_read( void * stream, VtlStreamOp read ) {
 
 bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad ) {
    void * data = vig_image_address( img );
-   
    if ( ! data ) return false;
+   int width = img->width;
    int height = img->height;
    int stride = vig_image_stride( img );
+   int wps = width * vig_pixel_size( img->pixel );
    vigResult = VIG_SUCCESS;
-   if ( pad )
-      return vtl_write_block( stream, write, data, height * stride );
-   int w = DIVC( img->width * vig_pixel_size( img->pixel ), 8 );
+   if ( pad || stride * 32 == wps )
+      return vtl_write_block( stream, write, data, height * stride * 4 );
+   int w = DIVC( wps, 8 );
    for (int r=height; 0 < r; --r) {
       if ( ! vtl_write_block( stream, write, data, w ))
          return false;
