@@ -67,13 +67,12 @@ bool vig_image_copy( VigImage src, VigImage dst );
 bool vig_image_join( VigImage dst, VigImage src, VigPlane plane );
 /// extract plane from image
 bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst );
-
 /// transform image
 bool vig_image_transform( VigImage src, VigImage dst, VigTransform t );
-
 /// difference of two images
 bool vig_image_diff( VigImage a, VigImage b, VigImage dst );
-
+/// create "pyramid" of an image: /2, /4, ... scaled images
+bool vig_image_pyramid( VigImage src, VigImage dst );
 /// reads raw image
 bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad );
 /// writes raw image

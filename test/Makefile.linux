@@ -1,4 +1,5 @@
-TESTS=basic diff
+#TESTS=basic diff pyr
+TESTS=pyr
 TEMPS=smiley.raw smiley2.bmp
 
 FFMPEG=ffmpeg
@@ -7,8 +8,10 @@ FFPLAY=ffplay
 IN=car.mp4
 WIDTH=1920
 HEIGHT=1080
-FPIX=gray
-VPIX=g8
+OWIDTH=960
+OHEIGHT=1080
+FPIX=rgb24
+VPIX=rgb24
 
 LIBS=vulcmp vultools vulimg
 INCDIR=$(LIBS:%=../../%)
@@ -38,8 +41,16 @@ diff.run: diff
         | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
         | $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
 
+pyr: pyr.c frameproc.c
+	$(CC) $(CFL) -o $@ $^ $(LFL)
+
+pyr.run: pyr
+	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
+        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
+        | $(FFPLAY) - -f rawvideo -video_size $(OWIDTH)x$(OHEIGHT) -pixel_format $(FPIX)
+#	> out.raw
+
 %.run: %
 	$(RFL) ./$<
-
 
 .PHONY: %.run

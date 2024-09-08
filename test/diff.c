@@ -32,6 +32,8 @@ void init( Diff d, int argc, char ** argv ) {
 
 /// memória felszabadítás
 int done( Diff d ) {
+   vig_image_free( d->last );
+   vig_image_free( d->diff );
    vfp_done( & d->fp );
    return 0;
 }
