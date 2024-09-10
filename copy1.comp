@@ -4,15 +4,16 @@ layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
 
 #include "vulimgpars.h"
 
+
 layout (push_constant) uniform Constants {
-   uint srcOff;
-   uint srcShift;
-   uint srcStride;
-   uint dstOff;
-   uint dstShift;
-   uint dstStride;
+   VigImgParam src;
+   VigImgParam dst;
+   uint sleft;
+   uint stop;
    uint width;
    uint height;
+   uint dleft;
+   uint dtop;
 };
 
 layout (binding = 0 ) readonly buffer Source {
@@ -22,42 +23,56 @@ layout (binding = 0 ) readonly buffer Source {
 layout( binding = 1 ) buffer Dest {
    uint dest[];
 };
-
-uint srcBits( int at, uint y, int n ) {
-   at += int(srcShift);
-   uint sm = at % 32;
-   uint si = (srcOff + y * srcStride + at) / 32;
-   int ss = 32-int(sm);
-   if ( n <= ss ) {
-      return bitfieldExtract( source[si], ss-n, n );
-   } else {
-      int nss = n-ss;
-      return bitfieldExtract( source[si], 0, ss ) << nss
-         | bitfieldExtract( source[si+1], 32-nss, nss );
-   }
-}
-         
    
+void edgePixel( uint x, uint y ) {
+   int sm = int( sleft ) % 32;
+   int rest = int(sm+width) - int( x*32 );
+   if ( 32 <= rest ) return;
+   int left = 0;
+   if ( 0 == x ) {
+      left = int( dleft ) % 32;
+      rest -= left;
+   }
+   uint si = (y+stop)*src.stride + sleft/32 + x;
+   uint v;
+   if ( left+rest <= 32 ) {
+      v = bitfieldExtract( source[si], left, rest );
+   } else {
+      int a = 32-left;
+      v = bitfieldExtract( source[si], left, a )
+         | bitfieldExtract( source[si+1], 0, rest-a ) << a;
+   }
+   uint di = (y+dtop)*dst.stride + dleft/32 + x;
+   dest[ di ] = bitfieldInsert( dest[di], v, left, rest );
+}
+   
+
+void midPixel( uint x, uint y ) {
+   int sm = int( sleft ) % 32;
+   int dm = int( dleft ) % 32;
+   uint si = (y+stop)*src.stride + sleft/32 +x;
+   uint v;
+   if ( sm <= dm ) {
+      int a = sm+32-dm;
+      int b = 32-a;
+      v = bitfieldExtract( source[si-1], b, a )
+         | bitfieldExtract( source[si], 0, b ) << a;
+   } else { 
+      int a = sm - dm;
+      int b = 32-a;
+      v = bitfieldExtract( source[si], a, b )
+         | bitfieldExtract( source[si+1], 0, a ) << b;
+   }
+   dest[ (y+dtop)*dst.stride + dleft/32 + x ] = v;
+}
    
    
 void main() {
    uint y = gl_GlobalInvocationID.y;
    if ( height <= y ) return;
    uint x = gl_GlobalInvocationID.x;
-   int at = int( x*32 - dstShift );
-   int rest = int( width - at );
-   if ( 0 >= rest ) return;
-   int r = 0;
-   int n = 32;
-   if ( 32 > rest ) {
-      n = rest;
-      r = 32 - rest;
-   }
-   if ( 0 == x )
-      n -= int(dstShift);
-   uint v = srcBits( at, y, n );
-   uint di = dstOff + y * dstStride + x;
-   if ( 32 == n )
-      dest[ di ] = v;
-      else dest[di] = bitfieldInsert( dest[di], v, r, n );
+   uint xl = (width+31)/32;
+   if ( 0 == x || xl <= x )
+      edgePixel( x, y );
+      else midPixel( x, y );
 }

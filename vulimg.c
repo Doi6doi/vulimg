@@ -76,6 +76,12 @@ struct VigImage {
 typedef struct VigCopyParams {
    struct VigImgParam src;
    struct VigImgParam dst;
+   uint32_t sleft;
+   uint32_t stop;
+   uint32_t width;
+   uint32_t height;
+   uint32_t dleft;
+   uint32_t dtop;
 } * VigCopyParams;
 
 typedef struct VigDiffParams {
@@ -318,71 +324,68 @@ static VcpTask vig_copy32() {
 }
 
 /// task for copy
-static VcpTask vig_copy_task( VigCopyParams pars, VigPixel spix, VigPixel dpix ) {
-   switch ( dpix ) {
-      case vix_8: case vix_g8:
-         switch ( spix ) {
-            case vix_8: case vix_g8:
-               pars->dst.width *= 8;
-               return vig_copy1();
-            break;
-            default:
-         }
-      break;
-      case vix_rgba32:
-         if ( spix == dpix )
-            return vig_copy32();
-      break;
-      case vix_rgb24: case vix_ybr24:
-         if ( spix == dpix ) {
-            pars->dst.width *= 24;
-            return vig_copy1();
-         }
-      break;
-      default:
+static VcpTask vig_copy_task( VigCopyParams pars, VigPixel pix ) {
+   uint32_t pxs = vig_pixel_size( pix );
+   if ( 0 == pars->sleft * pxs % 32
+      && 0 == pars->width % 32
+      && 0 == pars->dleft % 32 )
+   {
+      pars->sleft = pars->sleft * pxs / 32;
+      pars->width = pars->width * pxs / 32;
+      pars->dleft = pars->dleft * pxs / 32;
+      return vig_copy32();
    }
-   return NULL;
+   pars->sleft *= pxs;
+   pars->width *= pxs;
+   pars->dleft *= pxs;
+   return vig_copy1();
 }
 
-/*
-/// átfedő intervallumok
-static bool vig_overlap_iv( VigCoord a, VigCoord al, VigCoord b, VigCoord bl ) {
-   return (a <= b && b < a+al)
-      || (b <= a && a < b+bl);
-}
-*/
-
+/// kép paraméterek másolása
 static void vig_imgpars( VigImage i, VigImgParam p ) {
    p->width = i->width;
    p->height = i->height;
    p->stride = i->stride;
 }   
 
-bool vig_image_copy( VigImage src, VigImage dst ) {
-   if ( src == dst ) return true;
-   if ( ! vig_inited() ) return false;
-	vigResult = VIG_COORDERR;
-   if ( src->width != dst->width ) return false;
-   if ( src->height != dst->height ) return false;
-	struct VigCopyParams pars;
-   vig_imgpars( src, & pars.src );
-   vig_imgpars( dst, & pars.dst );
-   uint nx = DIVC( dst->width * vig_pixel_size( dst->pixel ), 32*COPY_GX );
-   vigResult = VIG_PIXELERR;
-   VcpTask t = vig_copy_task( & pars, src->pixel, dst->pixel );
-   if ( ! t ) return false;
-   vigResult = VIG_TASKERR;
-	VcpStorage ss[2] = { src->stor, dst->stor };
-	vcp_task_setup( t, ss, nx, DIVC( dst->height, COPY_GY ), 1, & pars );
-	return vig_run( t );
-}
-
+/// egyező felépítésű pixelek
 static bool vig_same_pixel( VigPixel a, VigPixel b ) {
    switch ( a ) {
       case vix_Unknown: return false;
       case vix_8: case vix_g8: return vix_8 == b || vix_g8 == b;
       default: return a == b;
    }
+}
+
+bool vig_image_copy( VigImage src, VigImage dst, VtlRect rect,
+   VigCoord dstLeft, VigCoord dstTop ) 
+{
+   if ( ! vig_inited() ) return false;
+   vigResult = VIG_PIXELERR;
+   if ( ! vig_same_pixel( src->pixel, dst->pixel )) return false;
+	vigResult = VIG_COORDERR;
+   uint32_t rw = rect->width;
+   uint32_t rh = rect->height;
+   if ( src->width < rect->left + rw ) return false;
+   if ( src->height < rect->top + rh ) return false;
+   if ( dst->width < dstLeft + rw ) return false;
+   if ( dst->height < dstTop + rh ) return false;
+	struct VigCopyParams pars;
+   vig_imgpars( src, & pars.src );
+   vig_imgpars( dst, & pars.dst );
+   pars.sleft = rect->left;
+   pars.stop = rect->top;
+   pars.width = rect->width;
+   pars.height = rect->height;
+   pars.dleft = dstLeft;
+   pars.dtop = dstTop;
+   uint nx = DIVC( rect->width * vig_pixel_size( dst->pixel ), 32*COPY_GX );
+   VcpTask t = vig_copy_task( & pars, dst->pixel );
+   if ( ! t ) return false;
+   vigResult = VIG_TASKERR;
+	VcpStorage ss[2] = { src->stor, dst->stor };
+	vcp_task_setup( t, ss, nx, DIVC( dst->height, COPY_GY ), 1, & pars );
+	return vig_run( t );
 }
 
 static bool vig_inv_transform( VigTransform src, VigTransform dst ) {
@@ -788,7 +791,8 @@ bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst ) {
    vigResult = VIG_PIXELERR;
    switch ( src->pixel ) {
 	  case vix_8: case vix_g8:
-	     return vig_image_copy( src, dst );
+        struct VtlRect r = {.left=0, .top=0, .width=pars.width, .height=pars.height };
+	     return vig_image_copy( src, dst, & r, 0, 0 );
 	  default: ;
    }
    uint32_t us;

@@ -11,7 +11,6 @@ void ewrite( VcpStr msg ) {
    vtl_ewrite( msg );
 }
 
-
 uint32_t avg( VigImage i ) {
    uint64_t ret = 0;
    uint32_t * p = vig_image_address( i );
@@ -52,6 +51,9 @@ ewrite("transform");
    vig_image_transform( i1, i2, & t );
    vig_check_fail();
    vig_image_transform( i2, i3, & t );
+   vig_check_fail();
+   struct VtlRect r = { .left=10, .top=10, .width=30, .height=30 };
+   vig_image_copy( i3, i3, &r, 50, 60 );
    vig_check_fail();
 ewrite("write bmp");
    f = fopen( SMILEY2BMP,"wb");

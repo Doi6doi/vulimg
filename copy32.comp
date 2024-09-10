@@ -2,13 +2,17 @@
 
 layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
 
-layout (push_constant) uniform Constants {
-   uint srcOff;
-   uint srcStride;
-   uint dstOff;
-   uint dstStride;
+#include "vulimgpars.h"
+
+layout (push_constant) uniform Constants { 
+   VigImgParam src;
+   VigImgParam dst;
+   uint sleft;
+   uint stop;
    uint width;
    uint height;
+   uint dleft;
+   uint dtop;
 };
 
 layout (binding = 0 ) readonly buffer Source {
@@ -24,5 +28,6 @@ void main() {
    if ( height <= y ) return;
    uint x = gl_GlobalInvocationID.x;
    if ( width <= x ) return;
-   dest[ dstOff + y*dstStride ] = source[ srcOff + y*srcStride ];
+   dest[ (y+dtop)*dst.stride + (x+dleft) ]
+      = source[ (y+stop)*src.stride + (x+sleft) ];
 }

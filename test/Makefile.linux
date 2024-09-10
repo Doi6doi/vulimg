@@ -1,5 +1,5 @@
 #TESTS=basic diff pyr
-TESTS=pyr
+TESTS=basic
 TEMPS=smiley.raw smiley2.bmp
 
 FFMPEG=ffmpeg
@@ -10,8 +10,8 @@ WIDTH=1920
 HEIGHT=1080
 OWIDTH=960
 OHEIGHT=1080
-FPIX=rgb24
-VPIX=rgb24
+FPIX=gray8
+VPIX=g8
 
 LIBS=vulcmp vultools vulimg
 INCDIR=$(LIBS:%=../../%)
@@ -46,8 +46,12 @@ pyr: pyr.c frameproc.c
 
 pyr.run: pyr
 	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
-        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
-        | $(FFPLAY) - -f rawvideo -video_size $(OWIDTH)x$(OHEIGHT) -pixel_format $(FPIX)
+        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX)\
+	| $(FFPLAY) - -f rawvideo -video_size $(OWIDTH)x$(OHEIGHT) -pixel_format $(FPIX)
+
+#        | $(RFL) valgrind --tool=callgrind ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX)
+#	| cat > /dev/null
+#	| cat > /dev/null
 #	> out.raw
 
 %.run: %

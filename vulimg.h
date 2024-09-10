@@ -57,12 +57,9 @@ VcpStorage vig_image_storage( VigImage );
 /// destroy image
 void vig_image_free( VigImage );
 
-/// part of an image
-VigImage vig_image_part( VigImage img, VigCoord left, VigCoord top,
-   VigCoord width, VigCoord height );
-
 /// copy image
-bool vig_image_copy( VigImage src, VigImage dst );
+bool vig_image_copy( VigImage src, VigImage dst, VtlRect rect, 
+   VigCoord dstLeft, VigCoord dstTop );
 /// add a plane to image
 bool vig_image_join( VigImage dst, VigImage src, VigPlane plane );
 /// extract plane from image
