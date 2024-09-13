@@ -1,0 +1,74 @@
+#version 450
+
+#include "vulimgpars.h"
+
+layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
+
+layout (push_constant) uniform Constants {
+   VigImgParam src;
+   VigImgParam dst;
+   int compBits;
+   int compCount;
+   uint width;
+   uint height;
+   uint row;
+};
+
+layout (binding = 0 ) readonly buffer Source {
+   uint source[];
+};
+
+layout (binding = 1 ) buffer Dest {
+   uint dest[];
+};
+
+
+uint calcComp( int xPix, int y, int iComp ) {
+   int x2 = xPix * 2;
+   int x2Comp = x2*compCount+iComp;
+   int x2Bit = x2Comp * compBits;
+   int m1 = x2Bit % 32;
+   int m2 = m1 + compBits*compCount % 32;
+   if (0 == row) {
+      uint si = y*2*src.stride + x2Bit / 32;
+      uint v = bitfieldExtract( source[si], m1, compBits )
+         + bitfieldExtract( source[si+src.stride], m1, compBits );
+      if ( m1 >= m2 )
+         ++si;
+      v += bitfieldExtract( source[si], m2, compBits )
+         + bitfieldExtract( source[si+src.stride], m2, compBits );
+      return (v+2)/4;
+   } else {
+      uint dy = row-2*(height-y);
+      uint di = dy*dst.stride + x2Bit / 32;
+      uint v = bitfieldExtract( dest[di], m1, compBits )
+         + bitfieldExtract( dest[di+dst.stride], m1, compBits );
+      if ( m1 >= m2 )
+         ++di;
+      v += bitfieldExtract( dest[di], m2, compBits )
+         + bitfieldExtract( dest[di+dst.stride], m2, compBits );
+      return (v+2)/4;
+   }
+}
+
+
+void main() {
+   uint y = gl_GlobalInvocationID.y;
+   if ( height <= y ) return;
+   uint x = gl_GlobalInvocationID.x;
+   int xComp = 32*int(x) / compBits;
+   int xPix = xComp / compCount;
+   if ( width <= xPix ) return;
+   int iComp = xComp % compCount;
+   uint ret = 0;
+   for (int i=0; i<32; i += compBits) {
+      uint v = calcComp( xPix, int(y), iComp );
+      ret = bitfieldInsert( ret, v, i, compBits );
+      if ( ++iComp == compCount ) {
+         ++xPix;
+         iComp = 0;
+      }
+   }
+   dest[ (y+row) * dst.stride + x ] = ret;
+}
+   
