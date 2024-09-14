@@ -1,5 +1,5 @@
 NAME=vulimg
-VER=0.9
+VER=20240914
 ARCH=x64
 LARCH=amd64
 MEMAIL=doinospam@gmail.com
