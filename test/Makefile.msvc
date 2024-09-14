@@ -1,0 +1,58 @@
+# TESTS=basic pyr diff
+TESTS=basic
+TESTEXES=$(patsubst %,%.exe,$(TESTS))
+TESTRUNS=$(patsubst %,%.run,$(TESTS))
+
+VKPATH=$(VK_SDK_PATH)
+VKLIB=$(VKPATH)\Lib\vulkan-1.lib
+
+FFMPEG=ffmpeg
+FFPLAY=ffplay
+
+IN=car.mp4
+WIDTH=1920
+HEIGHT=1080
+OWIDTH=960
+OHEIGHT=1080
+FPIX=gray8
+VPIX=g8
+
+LIBS=vulcmp vultools vulimg
+LIBDIRS=$(patsubst %,../../%,$(LIBS))
+LIBOBJS=..\..\vulcmp\vulcmp.obj ..\..\vultools\vultools.obj ..\..\vulimg\vulimg.obj
+VOBJ=$(VKPATH)\Lib\vulkan-1.lib
+CCARGS=$(patsubst %,-I%,$(LIBDIRS)) -I$(VKPATH)/Include
+
+RM=del /q
+CC=cl $(CCARGS)
+
+TEMPS=smiley.raw smiley2.bmp
+
+test: $(TESTRUNS)
+
+clean:
+	$(RM) $(TESTEXES) $(TEMPS)
+
+basic.exe: basic.c 
+	$(CC) $** $(LIBOBJS) $(VKLIB)
+	
+diff.exe: diff.c frameproc.c $(LIBOBJS) $(VKLIB)
+	$(CC) $**
+
+pyr.exe: pyr.c frameproc.c $(LIBOBJS) $(VKLIB)
+	$(CC) $**
+
+basic.run: basic.exe
+	$**
+
+diff.run: diff.exe
+	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
+        | ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
+        | $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
+
+pyr.run: pyr.exe
+	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
+        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX)\
+	| $(FFPLAY) - -f rawvideo -video_size $(OWIDTH)x$(OHEIGHT) -pixel_format $(FPIX)
+
+
