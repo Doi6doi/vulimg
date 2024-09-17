@@ -3,3 +3,7 @@
 *.o
 Makefile
 vulimg.geany
+/*.spv
+/*.dll
+/*.obj
+/*.exe
