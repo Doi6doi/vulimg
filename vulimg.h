@@ -46,8 +46,6 @@ VigPixel vig_image_pixel( VigImage );
 VigCoord vig_image_width( VigImage );
 /// get image height
 VigCoord vig_image_height( VigImage );
-/// is image full or a part
-bool vig_image_full( VigImage );
 /// get image data address
 void * vig_image_address( VigImage );
 /// get image stride in dwords
@@ -68,12 +66,18 @@ bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst );
 bool vig_image_transform( VigImage src, VigImage dst, VigTransform t );
 /// difference of two images
 bool vig_image_diff( VigImage a, VigImage b, VigImage dst );
+/// sum of difference
+bool vig_image_diffsum( VigImage a, VtlRect rect, VigImage b,
+   uint32_t bx, uint32_t by, uint64_t * diff );
 /// create "pyramid" of an image: /2, /4, ... scaled images
 bool vig_image_pyramid( VigImage src, VigImage dst );
+/// get rects of interest
+bool vig_white_rects( VigImage img, float limit, VtlRect rects, uint32_t * count );
 /// reads raw image
 bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad );
 /// writes raw image
 bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad );
+
 
 /// reads bmp
 VigImage vig_bmp_read( void * stream, VtlStreamOp read );

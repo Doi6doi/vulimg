@@ -1,0 +1,45 @@
+#version 450
+
+layout (local_size_x=16, local_size_y=1, local_size_z=1) in;
+
+layout (push_constant) uniform Constants {
+   uint astride;
+   uint bstride;
+   uint aleft;
+   uint atop;
+   uint bleft;
+   uint btop;
+   uint width;
+   uint height;
+};
+
+layout (binding = 0 ) readonly buffer A {
+   uint a[];
+};
+
+layout (binding = 1 ) readonly buffer B {
+   uint b[];
+};
+
+layout( binding = 2 ) writeonly buffer Dest {
+   uint dest[];
+};
+   
+void main() {
+   uint x = gl_GlobalInvocationID.x;
+   if ( width <= x ) return;
+   uint ret = 0;
+   for ( uint y=0; y < height; ++y ) {
+      int ia = int(x+aleft);
+      uint va = a[ (y+atop)*astride + ia*4 ];
+      va = bitfieldExtract( va, 8*(ia%4), 8 );
+      int ib = int(x+bleft);
+      uint vb = b[ (y+btop)*bstride + ib*4 ];
+      vb = bitfieldExtract( vb, 8*(ib%4), 8 );
+      if ( va <= vb )
+         ret += (vb-va);
+         else ret += (va-vb);
+   }
+   dest[x] = ret;
+}
+   

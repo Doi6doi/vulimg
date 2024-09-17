@@ -30,14 +30,23 @@ typedef struct VigPyrParams {
 } * VigPyrParams;
 
 
+typedef struct VigWhiteParams {
+   struct VigImgParam img;
+   float limit;
+   uint32_t phase;
+   uint32_t count;
+} * VigWhiteParams;
+
+
 typedef struct VigVulimg {
    VcpVulcomp vulcomp;
    uint32_t nimg;
    VigImage * imgs;
+   VigImage temp8;
    uint32_t npyrs;
    VigPyrParams pyrs;
-   uint32_t nparts;
-   VcpPart parts;
+   uint32_t nwhites;
+   VigWhiteParams whites;
    bool started;
    VcpTask copy1;
    VcpTask copy32;
@@ -47,6 +56,8 @@ typedef struct VigVulimg {
    VcpTask trans;
    VcpTask diff;
    VcpTask pyr;
+   VcpTask white8;
+   VcpTask dsum;
 } * VigVulimg;
 
 
@@ -57,8 +68,6 @@ struct VigImage {
    uint32_t stride;
    VcpStorage stor;
 };
-
-#pragma pack(push,1)
 
 #define COPY_GX 16
 #define COPY_GY 16
@@ -72,7 +81,21 @@ struct VigImage {
 #define DIFF_GY 16
 #define PYR_GX 16
 #define PYR_GY 16
+#define DSUM_GX 16
+
+#pragma pack(push,1)
+
+typedef struct VigRect {
+   uint16_t dx;
+   uint16_t dy;
+   uint32_t weight;
+   uint16_t left;
+   uint16_t top;
+   uint16_t width;
+   uint16_t height;
+} * VigRect;
  
+
 typedef struct VigCopyParams {
    struct VigImgParam src;
    struct VigImgParam dst;
@@ -104,6 +127,17 @@ typedef struct VigJoinParams {
    uint32_t dststride;
    uint32_t index;
 } * VigJoinParams;
+
+typedef struct VigDSumParams {
+   uint32_t astride;
+   uint32_t bstride;
+   uint32_t aleft;
+   uint32_t atop;
+   uint32_t bleft;
+   uint32_t btop;
+   uint32_t width;
+   uint32_t height;
+} * VigDSumParams;
 
 typedef struct VigBmpFileHeader {
    uint16_t magic;
@@ -140,6 +174,8 @@ int vigResult = VIG_SUCCESS;
 #include "trans.inc"
 #include "diff.inc"
 #include "pyr.inc"
+#include "white8.inc"
+#include "dsum.inc"
 
 /*
 static void ewrite( VcpStr msg ) {
@@ -178,10 +214,11 @@ bool vig_init( VcpVulcomp v ) {
    vulimg.vulcomp = v;
    vulimg.nimg = 0;
    vulimg.imgs = NULL;
-   vulimg.nparts = 0;
-   vulimg.parts = NULL;
+   vulimg.temp8 = NULL;
    vulimg.npyrs = 0;
    vulimg.pyrs = NULL;
+   vulimg.nwhites = 0;
+   vulimg.whites = NULL;
    vulimg.copy1 = NULL;
    vulimg.copy32 = NULL;
    vulimg.grow1 = NULL;
@@ -190,7 +227,8 @@ bool vig_init( VcpVulcomp v ) {
    vulimg.trans = NULL;
    vulimg.diff = NULL;
    vulimg.pyr = NULL;
-   vulimg.pyr = NULL;
+   vulimg.white8 = NULL;
+   vulimg.dsum = NULL;
    vulimg.started = true;
    return true;
 }
@@ -305,13 +343,13 @@ static VcpTask vig_diff() {
    return vulimg.diff;
 }
 
-/// pyr task
-static VcpTask vig_pyr() {
-   if ( ! vulimg.pyr ) {
-	  vulimg.pyr = vcp_task_create( vulimg.vulcomp,
-         pyr_spv, pyr_spv_len, "main", 2, sizeof( struct VigPyrParams ) );
+/// dsum task
+static VcpTask vig_dsum() {
+   if ( ! vulimg.dsum ) {
+	  vulimg.dsum = vcp_task_create( vulimg.vulcomp,
+         dsum_spv, dsum_spv_len, "main", 3, sizeof( struct VigDSumParams ) );
    }
-   return vulimg.pyr;
+   return vulimg.dsum;
 }
 
 /// copy32 task
@@ -322,6 +360,25 @@ static VcpTask vig_copy32() {
    }
    return vulimg.copy32;
 }
+
+/// pyr task
+static VcpTask vig_pyr() {
+   if ( ! vulimg.pyr ) {
+	  vulimg.pyr = vcp_task_create( vulimg.vulcomp,
+         pyr_spv, pyr_spv_len, "main", 2, sizeof( struct VigPyrParams ) );
+   }
+   return vulimg.pyr;
+}
+
+/// white task
+static VcpTask vig_white() {
+   if ( ! vulimg.white8 ) {
+	  vulimg.white8 = vcp_task_create( vulimg.vulcomp,
+         white8_spv, white8_spv_len, "main", 2, sizeof( struct VigWhiteParams ) );
+   }
+   return vulimg.white8;
+}
+
 
 /// task for copy
 static VcpTask vig_copy_task( VigCopyParams pars, VigPixel pix ) {
@@ -445,17 +502,6 @@ bool vig_image_diff( VigImage a, VigImage b, VigImage dst ) {
 	return vig_run( t );
 }
 
-static bool vig_parts_grow( uint32_t n ) {
-   if ( vulimg.nparts >= n ) return true;
-   vigResult = VIG_HOSTMEM;
-   VcpPart ret = REALLOC( vulimg.parts, struct VcpPart, n );
-   if ( !ret ) return false;
-   vulimg.parts = ret;
-   vulimg.nparts = n;
-   vigResult = VIG_SUCCESS;
-   return ret;
-}
-      
 static bool vig_pyrs_grow( uint32_t n ) {
    if ( vulimg.npyrs >= n ) return true;
    vigResult = VIG_HOSTMEM;
@@ -465,6 +511,34 @@ static bool vig_pyrs_grow( uint32_t n ) {
    vulimg.npyrs = n;
    vigResult = VIG_SUCCESS;
    return ret;
+}
+
+static bool vig_whites_grow( uint32_t n ) {
+   if ( vulimg.nwhites >= n ) return true;
+   vigResult = VIG_HOSTMEM;
+   VigWhiteParams ret = REALLOC( vulimg.whites, struct VigWhiteParams, n );
+   if ( !ret ) return false;
+   vulimg.whites = ret;
+   vulimg.nwhites = n;
+   vigResult = VIG_SUCCESS;
+   return ret;
+}
+
+static bool vig_temp8_grow( uint32_t w, uint32_t h ) {
+   if ( vulimg.temp8 ) {
+	  uint32_t tw = vulimg.temp8->width;
+	  uint32_t th = vulimg.temp8->height;
+	  if ( w <= tw && h <= th )
+	     return true;
+	  if ( w*h <= tw * th ) {
+	     vulimg.temp8->width = w;
+	     vulimg.temp8->height = tw * th / w;
+         return true;
+	  }
+   }
+   vig_image_free( vulimg.temp8 );
+   vulimg.temp8 = vig_image_create( w, h, vix_8 );
+   return NULL != vulimg.temp8;
 }
 
 static VcpTask vig_pyr_setup( VigImage src, VigImage dst ) {
@@ -482,8 +556,6 @@ static VcpTask vig_pyr_setup( VigImage src, VigImage dst ) {
    uint32_t compCount = vig_pixel_comps( dst->pixel );
    uint32_t compBits = ps / compCount;
    // konfiguráció kitöltése
-   if ( ! vig_parts_grow( n ))
-      return NULL;
    if ( ! vig_pyrs_grow( n ))
       return NULL;
    vigResult = VIG_TASKERR;
@@ -503,13 +575,12 @@ static VcpTask vig_pyr_setup( VigImage src, VigImage dst ) {
       py->width = (ncols /= 2); 
       py->row = row;
       row += nrows;
-      VcpPart pr = vulimg.parts+i;
+      VcpPart pr = prs+i;
       pr->baseX = pr->baseY = pr->baseZ = 0;
       pr->countX = DIVC( ncols * ps, 32*PYR_GX );
       pr->countY = DIVC( nrows, PYR_GY );
       pr->countZ = 1;
       pr->constants = py;
-      prs[i] = *pr;
    }
    vigResult = VIG_SUCCESS;
    return ret;
@@ -527,7 +598,7 @@ bool vig_image_pyramid( VigImage src, VigImage dst ) {
    if ( 2 > w || 2 > h ) return false;
    if ( w/2 > vig_image_width(dst)) return false;
    if ( h > vig_image_height(dst)) return false;
-	struct VigPyrParams pars;
+   struct VigPyrParams pars;
    vig_imgpars( src, & pars.src );
    vig_imgpars( dst, & pars.dst );
    uint32_t pxs = vig_pixel_size( dst->pixel );
@@ -575,11 +646,12 @@ static void vig_done_task( VcpTask * t ) {
 
 void vig_done() {
    if ( ! vulimg.started ) return;
+   vig_image_free( vulimg.temp8 );
    for (int i=vulimg.nimg-1; 0 <= i; --i)
       vig_image_free( vulimg.imgs[i] );
    vulimg.imgs = REALLOC( vulimg.imgs, VigImage, 0 );
    vulimg.pyrs = REALLOC( vulimg.pyrs, struct VigPyrParams, 0 );
-   vulimg.parts = REALLOC( vulimg.pyrs, struct VcpPart, 0 );
+   vulimg.whites = REALLOC( vulimg.whites, struct VigWhiteParams, 0 );
    vig_done_task( & vulimg.copy1 );
    vig_done_task( & vulimg.copy32 );
    vig_done_task( & vulimg.grow1 );
@@ -588,6 +660,8 @@ void vig_done() {
    vig_done_task( & vulimg.trans );
    vig_done_task( & vulimg.diff );
    vig_done_task( & vulimg.pyr );
+   vig_done_task( & vulimg.white8 );
+   vig_done_task( & vulimg.dsum );
    vulimg.started = false;
 }
 
@@ -933,6 +1007,112 @@ bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad ) {
    }
    return true;
 }
+
+
+/// white config beállítás
+static VcpTask vig_white_setup( VigImage img, float limit, uint32_t count ) {
+   uint32_t n = 1;
+   uint32_t w = img->width;
+   uint32_t h = img->height;
+   uint32_t n4 = 4;
+   while ( n4 < w || n4 < h ) {
+	  ++n;
+	  n4 *= 4;
+   }
+   if ( ! vig_whites_grow( n )) return false;
+   if ( ! vig_temp8_grow( w, h )) return false;
+   VcpTask ret = vig_white();
+   if ( ! ret ) return false;
+   VcpStorage ss[2] = { img->stor, vulimg.temp8->stor };
+   vcp_task_setup( ret, ss, 0, 0, 0, NULL );
+   VcpPart ps = vcp_task_parts( ret, n );
+   n4 = 4;
+   for ( int i=0; i<n; ++i ) {
+      VigWhiteParams pr = vulimg.whites+i;
+      vig_imgpars( img, & pr->img );
+      pr->phase = i;
+      pr->limit = limit;
+      pr->count = count;
+	  VcpPart p = ps+i;
+	  p->baseX = p->baseY = p->baseZ = 0;
+	  p->countX = DIVC( img->width * 8, 32 );
+	  p->countY = DIVC( img->height, n4 );
+      p->countZ = 1;
+      p->constants = pr;
+   }
+   return false;
+}
+
+/// egy rect kiolvasása az eredményből
+static void * vig_white_result( void * ptr, VtlRect rects, uint32_t stride ) {
+   VigRect r = ptr;
+   if ( ! r->weight ) return false;
+   rects->left = r->left;
+   rects->top = r->top;
+   rects->width = r->width;
+   rects->height = r->height;
+   if ( 0 == r->dx && 0 == r->dy )
+      return NULL;
+   return ((uint32_t *)ptr)+stride*r->dy*4 + r->dx;
+}
+
+
+bool vig_white_rects( VigImage img, float limit, VtlRect rects, uint32_t * count ) {
+   if ( ! vig_inited() ) return false;
+   vigResult = VIG_PIXELERR;
+   if ( ! vig_same_pixel( vix_g8, img->pixel )) return false;
+   vigResult = VIG_COORDERR;
+   if ( 0 >= *count ) return false;
+   if ( 0 > limit || 1 < limit ) return false;
+   VcpTask t = vig_white_setup( img, limit, *count );
+   if ( ! t ) return false;
+   vigResult = VIG_TASKERR;
+   if ( ! vig_run( t )) return false;
+   uint32_t stride = vulimg.temp8->stride;
+   void * p = vig_image_address( vulimg.temp8 );
+   for ( ; 0 < *count; --*count ) {
+	  if ( ! vig_white_result( p, rects, stride ))
+	     break;
+	  ++ rects;
+   }
+   return true;
+}
+
+bool vig_image_diffsum( VigImage a, VtlRect r, VigImage b, 
+   VigCoord bx, VigCoord by, uint64_t * diff ) 
+{
+   if ( ! vig_inited() ) return false;
+   vigResult = VIG_PIXELERR;
+   if ( ! vig_same_pixel( a->pixel, b->pixel )) return false;
+   uint32_t comps = vig_pixel_comps( a->pixel );
+   if ( 8 != vig_pixel_size( a->pixel ) / comps ) return false;
+   vigResult = VIG_COORDERR;
+   if ( a->width < r->left + r->width ) return false;
+   if ( a->height < r->top + r->height ) return false;
+   if ( b->width < bx + r->width ) return false;
+   if ( b->height < by + r->height ) return false;
+   struct VigDSumParams pars = {
+	   .astride = a->stride,
+	   .bstride = b->stride,
+	   .aleft = r->left * comps,
+	   .atop = r->top,
+	   .bleft = bx * comps,
+	   .btop = by,
+	   .width = r->width * comps,
+	   .height = r->height
+   };
+   if ( ! vig_temp8_grow( pars.width*4, 1 )) return false;
+   VcpTask t = vig_dsum();
+   if ( ! t ) return false;
+   VcpStorage ss[3] = { a->stor, b->stor, vulimg.temp8->stor };
+   vcp_task_setup( t, ss, DIVC( pars.width, DSUM_GX ), 1, 1, & pars );
+   if ( ! vig_run( t )) return false;
+   uint32_t * p = vig_image_address( vulimg.temp8 );
+   *diff = 0;
+   for ( int i=pars.width; 0<i; --i )
+      *diff += *(p++);
+   return true;
+}   
 
 
 
