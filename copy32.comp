@@ -1,18 +1,11 @@
 #version 450
 
-layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
+#include "vulimg_comp.h"
 
-#include "vulimgpars.h"
+layout (local_size_x=UGR, local_size_y=UGR, local_size_z=1) in;
 
 layout (push_constant) uniform Constants { 
-   VigImgParam src;
-   VigImgParam dst;
-   uint sleft;
-   uint stop;
-   uint width;
-   uint height;
-   uint dleft;
-   uint dtop;
+   VigCopyParams p;
 };
 
 layout (binding = 0 ) readonly buffer Source {
@@ -25,9 +18,9 @@ layout( binding = 1 ) writeonly buffer Dest {
 
 void main() {
    uint y = gl_GlobalInvocationID.y;
-   if ( height <= y ) return;
+   if ( p.height <= y ) return;
    uint x = gl_GlobalInvocationID.x;
-   if ( width <= x ) return;
-   dest[ (y+dtop)*dst.stride + (x+dleft) ]
-      = source[ (y+stop)*src.stride + (x+sleft) ];
+   if ( p.width <= x ) return;
+   dest[ (y+p.dtop)*p.dst.stride + (x+p.dleft) ]
+      = source[ (y+p.stop)*p.src.stride + (x+p.sleft) ];
 }

@@ -1,15 +1,11 @@
 #version 450
 
-#include "vulimgpars.h"
+#include "vulimg_comp.h"
 
-layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
+layout (local_size_x=UGR, local_size_y=UGR, local_size_z=1) in;
 
 layout (push_constant) uniform Constants {
-   VigImgParam src;
-   VigImgParam dst;
-   VigTransform trans;
-   int compBits;
-   int compCount;
+   VigTransParams p;
 };
 
 layout (binding = 0 ) readonly buffer Source {
@@ -21,18 +17,18 @@ layout( binding = 1 ) writeonly buffer Dest {
 };
 
 float getComp( int y, int x, int iComp ) {
-   if ( x < 0 || src.width <= x ) return 0.0;
-   int xComp = x*compCount + iComp;
-   int xBit = xComp * compBits;
-   uint v = source[ y*src.stride + xBit / 32 ];
+   if ( x < 0 || p.src.width <= x ) return 0.0;
+   int xComp = x * p.compCount + iComp;
+   int xBit = xComp * p.compBits;
+   uint v = source[ y*p.src.stride + xBit / 32 ];
    int s = xBit % 32;
-   bitfieldExtract( v,0, compBits );
-   return float( bitfieldExtract( v, 32-s-compBits, compBits ));
+   bitfieldExtract( v,0, p.compBits );
+   return float( bitfieldExtract( v, 32-s-p.compBits, p.compBits ));
 }
 
 float calcCompRow( int y, float x, int iComp ) {
-   if ( y < 0 || src.height <= y ) return 0.0;
-   float mx = trans.sx + trans.rx;
+   if ( y < 0 || p.src.height <= y ) return 0.0;
+   float mx = p.trans.sx + p.trans.rx;
    int x1, n;
    if ( -1 > mx ) {
       x1 = int( x + mx );
@@ -50,15 +46,15 @@ float calcCompRow( int y, float x, int iComp ) {
    float ret = 0;
    for (int i=0; i<n; ++i)
       ret += getComp( y, x1+i, iComp );
-   if ( 1 == compBits )
+   if ( 1 == p.compBits )
       ret += n/2;
    return ret / n;
 }
 
 float calcComp( uint y, uint x, int iComp ) {
-  float dx = trans.sx * x + trans.rx * y + trans.dx;
-  float dy = trans.ry * x + trans.sy * y + trans.dy;
-  float my = trans.ry + trans.sy;
+  float dx = p.trans.sx * x + p.trans.rx * y + p.trans.dx;
+  float dy = p.trans.ry * x + p.trans.sy * y + p.trans.dy;
+  float my = p.trans.ry + p.trans.sy;
   int y1, n;
   if ( -1 > my ) {
      y1 = int( dy+my );
@@ -76,28 +72,28 @@ float calcComp( uint y, uint x, int iComp ) {
   float ret = 0;
   for (int i=0; i<n; ++i)
      ret += calcCompRow( y1+i, dx, iComp );
-  if ( 0 == compBits )
+  if ( 0 == p.compBits )
      ret += n/2;
   return ret / n;
 }
          
 void main() {
    uint y = gl_GlobalInvocationID.y;
-   if ( dst.height <= y ) return;
+   if ( p.dst.height <= y ) return;
    uint x = gl_GlobalInvocationID.x;
-   int xComp = 32*int(x) / compBits;
-   int xPix = xComp / compCount;
-   if ( dst.width <= xPix ) return;
-   int iComp = xComp % compCount;
+   int xComp = 32*int(x) / p.compBits;
+   int xPix = xComp / p.compCount;
+   if ( p.dst.width <= xPix ) return;
+   int iComp = xComp % p.compCount;
    uint ret = 0;
-   for (int i=0; i<32; i += compBits) {
+   for (int i=0; i<32; i += p.compBits) {
       uint v = uint( calcComp( y, xPix, iComp ) );
-      ret = bitfieldInsert( ret, v, 32-i-compBits, compBits );
-      if ( ++iComp == compCount ) {
+      ret = bitfieldInsert( ret, v, 32-i-p.compBits, p.compBits );
+      if ( ++iComp == p.compCount ) {
          ++xPix;
          iComp = 0;
       }
    }
-   dest[ y * dst.stride + x ] = ret;
+   dest[ y * p.dst.stride + x ] = ret;
 }
    

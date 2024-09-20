@@ -1,13 +1,11 @@
 #version 450
 
-layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
+#include "vulimg_comp.h"
+
+layout (local_size_x=UGR, local_size_y=UGR, local_size_z=1) in;
 
 layout (push_constant) uniform Constants {
-   uint width;
-   uint height;
-   uint srcstride;
-   uint dststride;
-   uint index;
+   VigJoinParams p;
 };
 
 layout (binding = 0 ) readonly buffer Source {
@@ -21,7 +19,7 @@ layout( binding = 1 ) writeonly buffer Dest {
 uint x, x4, y, so, o;
 
 uint value(uint d) {
-   uint dd = 3*d+index;
+   uint dd = 3*d+p.index;
    uint v = source[ so+dd/4 ];
    return bitfieldExtract( v, int(8*(dd%4)), 8); 
 }
@@ -38,9 +36,9 @@ void inside() {
 }
 
 void edge() {
-   if ( width <= x4 ) return;
+   if ( p.width <= x4 ) return;
    uint v[4] = {0,0,0,0};
-   uint n = width-x4;
+   uint n = p.width-x4;
    for (int i=0; i<n; ++i)
       v[i] = value( i );
    setdest( v[0], v[1], v[2], v[3] );
@@ -48,13 +46,13 @@ void edge() {
 
 void main() {
    y = gl_GlobalInvocationID.y;
-   if ( height <= y ) return;
+   if ( p.height <= y ) return;
    x = gl_GlobalInvocationID.x;
    x4 = 4*x;
-   if ( width <= x4 ) return;
-   so = y*srcstride/4 + x*3;
-   o = y*dststride/4 + x;
-   if ( x4 <= width-4 )
+   if ( p.width <= x4 ) return;
+   so = y*p.srcstride/4 + x*3;
+   o = y*p.dststride/4 + x;
+   if ( x4 <= p.width-4 )
       inside();
       else edge();
 }

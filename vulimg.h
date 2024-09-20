@@ -3,9 +3,10 @@
 
 #include <vulcmp.h>
 #include <vultools.h>
-
+ 
 typedef uint32_t VigCoord;
-typedef enum VigPixel { vix_Unknown, vix_1, vix_8, vix_g8, vix_rgb24, vix_rgba32, vix_ybr24 } VigPixel;
+typedef enum VigPixel { vix_Unknown, vix_1, vix_8, vix_g8, vix_s8, 
+   vix_rgb24, vix_ybr24, vix_rgba32, vix_argb32 } VigPixel;
 typedef enum VigPlane { vpl_Unknown, vpl_R, vpl_G, vpl_B, vpl_Y, vpl_Cb, vpl_Cr } VigPlane;
 
 typedef struct VigImage * VigImage;
@@ -64,11 +65,15 @@ bool vig_image_join( VigImage dst, VigImage src, VigPlane plane );
 bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst );
 /// transform image
 bool vig_image_transform( VigImage src, VigImage dst, VigTransform t );
+/// shift image pixel values
+bool vig_image_delta( VigImage src, uint32_t pixel, VigImage dst );
 /// difference of two images
 bool vig_image_diff( VigImage a, VigImage b, VigImage dst );
 /// sum of difference
 bool vig_image_diffsum( VigImage a, VtlRect rect, VigImage b,
    uint32_t bx, uint32_t by, uint64_t * diff );
+/// average pixel
+bool vig_image_avg( VigImage img, uint32_t * pix );
 /// create "pyramid" of an image: /2, /4, ... scaled images
 bool vig_image_pyramid( VigImage src, VigImage dst );
 /// get rects of interest

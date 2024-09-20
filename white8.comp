@@ -1,14 +1,10 @@
 #version 450
+#include "vulimg_comp.h"
 
-layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
-
-#include "vulimgpars.h"
+layout (local_size_x=UGR, local_size_y=UGR, local_size_z=1) in;
 
 layout (push_constant) uniform Constants { 
-   VigImgParam img;
-   float limit;
-   uint phase;
-   uint count;
+   VigWhiteParams p;
 };
 
 layout (binding = 0 ) readonly buffer Source {

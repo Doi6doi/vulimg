@@ -1,13 +1,10 @@
 #version 450
+#include "vulimg_comp.h"
 
-layout (local_size_x=16, local_size_y=16, local_size_z=1) in;
+layout (local_size_x=UGR, local_size_y=UGR, local_size_z=1) in;
 
 layout (push_constant) uniform Constants {
-   uint width;
-   uint height;
-   uint srcstride;
-   uint dststride;
-   uint index;
+   VigJoinParams p;
 };
 
 layout (binding = 0 ) readonly buffer Source {
@@ -45,7 +42,7 @@ void setdest2( uint v ) {
 }
 
 void setdestin( uint v0, uint v1, uint v2, uint v3 ) {
-   switch (index) {
+   switch (p.index) {
       case 0:
          setdest03( v0, v1 );
          setdest2( v2 );
@@ -65,7 +62,7 @@ void setdestin( uint v0, uint v1, uint v2, uint v3 ) {
 }
 
 void setdested( uint v0, uint v1, uint v2, uint v3, uint n ) {
-   switch (index) {
+   switch (p.index) {
       case 0:
          setdest03( v0, v1 );
          if ( 2 < n ) setdest2( v2 );
@@ -91,10 +88,10 @@ void inside() {
 }
 
 void edge() {
-   if ( width <= x4 ) return;
+   if ( p.width <= x4 ) return;
    uint d = source[ so ];
    uint v[4] = {0,0,0,0};
-   uint n = width-x4;
+   uint n = p.width-x4;
    for (int i=0; i<n; ++i)
       v[i] = value( d, i );
    setdested( v[0], v[1], v[2], v[3], n );
@@ -102,12 +99,12 @@ void edge() {
 
 void main() {
    y = gl_GlobalInvocationID.y;
-   if ( height <= y ) return;
+   if ( p.height <= y ) return;
    x = gl_GlobalInvocationID.x;
    x4 = 4*x;
-   so = y*srcstride/4 + x;
-   o = y*dststride/4 + x*3;
-   if ( x4 <= width-4 )
+   so = y*p.srcstride/4 + x;
+   o = y*p.dststride/4 + x*3;
+   if ( x4 <= p.width-4 )
       inside();
       else edge();
 }
