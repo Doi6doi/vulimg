@@ -107,6 +107,92 @@ Pixel types must match.
 - `trans`: the transformation matrix. Must be invertible.
 - *returns* true if transformation is successful
 
+---
+```c
+bool vig_image_delta( VigImage src, uint32_t pixel, VigImage dst )
+```
+Modify each pixel value of an image. The components of `pixel` are added
+to them. Result is clamped to pixel type boundaries.
+- `src`: source image (to be modified)
+- `pixel`: the modification pixel value. Has the same type as `src`.
+- `dst`: destination image (the result).
+- *returns* true if delta is successful
+
+---
+```c
+bool vig_image_diff( VigImage a, VigImage b, VigImage dst );
+```
+Difference between two images. Difference will be pixel-component-wise.
+Image dimensions and pixel types must match.
+- `a`: first image
+- `b`: second image
+- `dst`: difference image (the result).
+- *returns* true if diff is successful
+
+---
+```c
+bool vig_image_diffsum( VigImage a, VtlRect rect, VigImage b,
+   VigCoord bLeft, VigCoord bTop, uint64_t * diff )
+```
+Sum of pixel-component differences between parts of two images. 
+- `a`: first image
+- `rect`: the area to compare in `a`. Must fit inside `a`
+- `b`: second image. Can be `a` as well.
+- `bLeft`: x coordinate of area in `dst`
+- `bTop`: y coordinate of area in `dst`
+- `diff`: the sum of pixel-component differences between the areas.
+- *returns* true if diffsum is successful
+
+---
+```c
+bool vig_image_avg( VigImage img, uint32_t * pix )
+```
+Component-wise average of all pixels in the image.
+- `img`: the image
+- `pix`: the component-wise pixel value as an average of all pixels of `img`
+- *returns* true if averaging is successful
+
+---
+```c
+bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad )
+```
+Read raw pixel data from stream.
+- `img`: the image to fill with pixel data
+- `stream`: the stream to read from
+- `read`: stream reader function
+- `pad`: is pixel data stored in 4-byte padded lines in stream
+- *returns* true if raw read is successful
+
+---
+```c
+bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad )
+```
+Write raw pixel data to stream.
+- `img`: the image containing pixel data
+- `stream`: the stream to write to
+- `write`: stream writer function
+- `pad`: should 4-byte padding be written after each line
+- *returns* true if raw write is successful
+
+---
+```c
+VigImage vig_bmp_read( void * stream, VtlStreamOp read );
+```
+Read image from bmp file. It can only read uncompressed bmp files.
+- `stream`: the stream to read bmp from
+- `read`: stream reader function
+- *returns* the image or NULL if there was an error
+
+---
+```c
+bool vig_bmp_write( VigImage src, void * stream, VtlStreamOp write )
+```
+Write image to uncompressed bmp file. Pixel type must be bmp compatible.
+- `img`: the image to write
+- `stream`: the stream to write bmp data
+- `write`: stream writer function
+- *returns* true if write is successful
+
 ## Less important functions
 
 ```c
@@ -155,6 +241,37 @@ It can be a bit more than width * pixel size, because all lines
 are 4-bit aligned.
 - `img`: image handle
 - *returns* stride of image in bytes
+
+---
+```c
+bool vig_image_pyramid( VigImage src, VigImage dst )
+```
+Create "pyramid" of image. It means a half-width * half-height, 
+then below a quarter-width * quarter-height, etc.. sized shrinked image of
+the original. It can be used to calculate shifts between two frames.
+Pixel types must match.
+- `src`: original image
+- `dst`: destination image (where pyramid will go). 
+Must be at least width/2 * height.
+- *returns* true if pyramid is successful.
+
+---
+```c
+bool vig_white_rects( VigImage img, float limit, 
+   float dist, VtlRect rects, uint32_t * count );
+```
+Get rectangular parts of image where there are light pixel values.
+Those will be an area of interest (e.g after edge detection or diff detection)
+pixel type must be `vix_8` or `vix_g8`
+- `img`: image handle
+- `limit`: must be between 0 and 1. 
+Pixels darker than that (<256*limit) won't be considered light.
+- `dist`: maximum distance between two detected rects to join. 
+If they are farther than that, they will be returned separately.
+- `rects`: the address where detected rect coordinates will be returned.
+- `count`: the number of rects returned. 
+The input value is the maximum number of rects returned.
+- *returns* true if rect detection is successful
 
 ---
 ```c
@@ -220,4 +337,29 @@ It is only needed if you wish to save memory earlier.
 
 ## Example code
 
+```c
+// initialize GPU
+VcpVulcomp v = vcp_init( "vigtest", VCP_VALIDATION );
+// initialize vulimg
+vig_init( v );
+// load bmp image
+FILE * fh = fopen( "test.bmp", "rb" );
+VigImage i1 = vig_bmp_read( fh, vtl_fread );
+flcose( fh );
+// create other image
+VigImage i2 = vig_image_create( vig_image_width(i1),
+   vig_image_height(i1), vig_image_pixel(i1) );
+// rotate image with 30 degrees
+struct VigTransform tr = { 
+   .sx=0.866, .rx=-0.5,  .mx=0,
+   .ry=0.5,   .sy=0.866, .my=0 
+};
+vig_image_transform( i1, i2, &tr ); 
+// write as bmp
+FILE * gh = fopen("test2.bmp", "wb" );
+vig_bmp_write( i2, gh, vtl_fwrite );
+// finalize
+vig_done();
+vcp_done(v);
+```
 

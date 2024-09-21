@@ -56,28 +56,29 @@ VcpStorage vig_image_storage( VigImage );
 /// destroy image
 void vig_image_free( VigImage );
 
-/// copy image
+/// copy image part
 bool vig_image_copy( VigImage src, VigImage dst, VtlRect rect, 
    VigCoord dstLeft, VigCoord dstTop );
-/// add a plane to image
-bool vig_image_join( VigImage dst, VigImage src, VigPlane plane );
 /// extract plane from image
 bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst );
+/// add a plane to image
+bool vig_image_join( VigImage dst, VigImage src, VigPlane plane );
 /// transform image
-bool vig_image_transform( VigImage src, VigImage dst, VigTransform t );
+bool vig_image_transform( VigImage src, VigImage dst, VigTransform trans );
 /// shift image pixel values
 bool vig_image_delta( VigImage src, uint32_t pixel, VigImage dst );
 /// difference of two images
 bool vig_image_diff( VigImage a, VigImage b, VigImage dst );
 /// sum of difference
 bool vig_image_diffsum( VigImage a, VtlRect rect, VigImage b,
-   uint32_t bx, uint32_t by, uint64_t * diff );
+   VigCoord bLeft, VigCoord bTop, uint64_t * diff );
 /// average pixel
 bool vig_image_avg( VigImage img, uint32_t * pix );
 /// create "pyramid" of an image: /2, /4, ... scaled images
 bool vig_image_pyramid( VigImage src, VigImage dst );
 /// get rects of interest
-bool vig_white_rects( VigImage img, float limit, VtlRect rects, uint32_t * count );
+bool vig_white_rects( VigImage img, float limit, 
+   float dist, VtlRect rects, uint32_t * count );
 
 /// reads raw image
 bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad );
@@ -87,7 +88,7 @@ bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad );
 /// reads bmp
 VigImage vig_bmp_read( void * stream, VtlStreamOp read );
 /// write bmp
-bool vig_bmp_write( VigImage src, void * stream, VtlStreamOp write );
+bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write );
 
 
 #endif // VULIMGH
