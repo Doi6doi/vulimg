@@ -174,15 +174,15 @@ bool vig_isimage( VigImage img ) {
    return true;
 }
 
-uint32_t vig_image_width( VigImage img ) {
+VigCoord vig_image_width( VigImage img ) {
    return img->width;
 }
 
-uint32_t vig_image_height( VigImage img ) {
+VigCoord vig_image_height( VigImage img ) {
    return img->height;
 }
 
-uint32_t vig_image_stride( VigImage img ) {
+VigCoord vig_image_stride( VigImage img ) {
    return 4*img->stride;	
 }
 

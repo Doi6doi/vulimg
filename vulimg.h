@@ -42,15 +42,15 @@ uint32_t vig_pixel_size( VigPixel pixel );
 /// create new image
 VigImage vig_image_create( VigCoord width, VigCoord height, VigPixel pixel );
 /// get image pixel format
-VigPixel vig_image_pixel( VigImage );
+VigPixel vig_image_pixel( VigImage img );
 /// get image width
 VigCoord vig_image_width( VigImage );
 /// get image height
 VigCoord vig_image_height( VigImage );
 /// get image data address
 void * vig_image_address( VigImage );
-/// get image stride in dwords
-uint32_t vig_image_stride( VigImage );
+/// get image stride in bytes
+VigCoord vig_image_stride( VigImage );
 /// get image storage
 VcpStorage vig_image_storage( VigImage );
 /// destroy image
@@ -78,11 +78,11 @@ bool vig_image_avg( VigImage img, uint32_t * pix );
 bool vig_image_pyramid( VigImage src, VigImage dst );
 /// get rects of interest
 bool vig_white_rects( VigImage img, float limit, VtlRect rects, uint32_t * count );
+
 /// reads raw image
 bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad );
 /// writes raw image
 bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad );
-
 
 /// reads bmp
 VigImage vig_bmp_read( void * stream, VtlStreamOp read );
