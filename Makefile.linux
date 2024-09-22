@@ -1,15 +1,10 @@
 include Makefile.defs
 
-# vulcomp directories
-VCP_INCLUDE=../vulcmp
-VCP_LIB=../vulcmp
-# vultools directories
-VTL_INCLUDE=../vultools
-VTL_LIB=../vultools
+DIRS=$(VULCMPDIR) $(VULTOOLSDIR)
 
 COMPS=copy1 copy32 join3 plane3 trans diff pyr white8 dsum delta8
 
-CC=gcc -g -I$(VCP_INCLUDE) -L$(VCP_LIB) -I$(VTL_INCLUDE) -L$(VTL_INCLUDE)
+CC=gcc -g $(DIRS:%=-L%) $(DIRS:%=-I%)
 GLSLC=glslc
 RM=rm -f
 EH=@echo

@@ -5,3 +5,5 @@ LARCH=amd64
 MEMAIL=doinospam@gmail.com
 MNAME=Zoltán Várnagy
 DESC=Image functions with vulcmp
+VULCMPDIR=../vulcmp
+VULTOOLSDIR=../vultools
