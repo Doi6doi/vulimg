@@ -1,12 +1,14 @@
 basic
 smiley.raw
 smiley2.bmp
+test2.bmp
 ide.txt
 diff
 mini
 pyr
 *.mp4
 *.mkv
+
 
 /*.obj
 /*.exe
