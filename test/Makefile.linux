@@ -1,4 +1,4 @@
-#TESTS=basic diff pyr
+#TESTS=basic mini diff pyr
 TESTS=basic
 TEMPS=smiley.raw smiley2.bmp
 
@@ -29,6 +29,9 @@ test: $(TESTS:=.run)
 
 clean:
 	$(RM) $(TESTS) $(TEMPS)
+
+mini: mini.c
+	$(CC) $(CFL) -o $@ $^ $(LFL)
 
 basic: basic.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)

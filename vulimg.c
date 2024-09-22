@@ -105,14 +105,12 @@ static void ewrite( VcpStr msg ) {
    fflush( stderr );
 }
 */
-
 int vig_error() { return vigResult; }
 
 void vig_check_fail() {
    if ( VIG_SUCCESS != vigResult )
       FAIL( "Error: vulimg %d\n", vigResult );
 }
-   
 
 bool vig_run( VcpTask t ) {
    vcp_task_start( t );
@@ -202,7 +200,7 @@ uint32_t vig_pixel_size( VigPixel pix ) {
    switch (pix) {
 	  case vix_8: case vix_g8: case vix_s8: return 8;
 	  case vix_rgb24: case vix_ybr24: return 24;
-	  case vix_rgba32: return 32;
+	  case vix_rgba32: case vix_argb32: return 32;
 	  default: return 0; 
    }
 }
@@ -212,7 +210,7 @@ static uint32_t vig_pixel_comps( VigPixel pix ) {
    switch (pix) {
 	  case vix_8: case vix_g8: return 1;
 	  case vix_rgb24: case vix_ybr24: return 3;
-	  case vix_rgba32: return 4;
+	  case vix_rgba32: case vix_argb32: return 4;
 	  default: return 0; 
    }
 }
@@ -518,7 +516,6 @@ static VcpTask vig_pyr_setup( VigImage src, VigImage dst ) {
       py->row = row;
       row += nrows;
       VcpPart pr = prs+i;
-      pr->baseX = pr->baseY = pr->baseZ = 0;
       pr->countX = DIVC( ncols * ps, 32*UGR );
       pr->countY = DIVC( nrows, UGR );
       pr->countZ = 1;
@@ -889,9 +886,10 @@ bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad ) {
    return true;
 }
 
-
 /// white config beállítás
-static VcpTask vig_white_setup( VigImage img, float limit, uint32_t count ) {
+static VcpTask vig_white_setup( VigImage img, float limit, float dist,
+   uint32_t count )
+{
    uint32_t n = 1;
    uint32_t w = img->width;
    uint32_t h = img->height;
@@ -913,9 +911,9 @@ static VcpTask vig_white_setup( VigImage img, float limit, uint32_t count ) {
       vig_imgpars( img, & pr->img );
       pr->phase = i;
       pr->limit = limit;
+      pr->dist = dist;
       pr->count = count;
 	  VcpPart p = ps+i;
-	  p->baseX = p->baseY = p->baseZ = 0;
 	  p->countX = DIVC( img->width * 8, 32 );
 	  p->countY = DIVC( img->height, n4 );
       p->countZ = 1;
@@ -938,14 +936,16 @@ static void * vig_white_result( void * ptr, VtlRect rects, uint32_t stride ) {
 }
 
 
-bool vig_white_rects( VigImage img, float limit, VtlRect rects, uint32_t * count ) {
+bool vig_white_rects( VigImage img, float limit, float dist,
+   VtlRect rects, uint32_t * count )
+{
    if ( ! vig_inited() ) return false;
    vigResult = VIG_PIXELERR;
    if ( ! vig_pixel_same( vix_g8, img->pixel )) return false;
    vigResult = VIG_COORDERR;
    if ( 0 >= *count ) return false;
    if ( 0 > limit || 1 < limit ) return false;
-   VcpTask t = vig_white_setup( img, limit, *count );
+   VcpTask t = vig_white_setup( img, limit, dist, *count );
    if ( ! t ) return false;
    vigResult = VIG_TASKERR;
    if ( ! vig_run( t )) return false;

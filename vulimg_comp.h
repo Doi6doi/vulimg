@@ -83,6 +83,7 @@ struct VigPyrParams {
 struct VigWhiteParams {
    STRUCT VigImgParam img;
    FLOAT limit;
+   FLOAT dist;
    UINT phase;
    UINT count;
 };
