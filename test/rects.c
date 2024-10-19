@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include "frameproc.h"
 
-#define NRECT 20
+#define NRECT 3
 
 /// következő képkocka
 VigImage next( FrameProc p ) {
@@ -14,11 +14,6 @@ VigImage next( FrameProc p ) {
    vig_check_fail();
    for ( int i=0; i<n; ++i)
       vig_draw_rect( p->frame, r+i, 0xff );
-/*
-   struct VtlRect r = {
-	 .left = 100, .top = 100, .height = 500, .width = 500 };
-   vig_draw_rect( p->frame, & r, 0xffffffff );
-   */
    return p->frame;
 }
 

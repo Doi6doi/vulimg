@@ -870,7 +870,7 @@ static void vig_rect_load( uint32_t * ptr, uint32_t stride, uint32_t link, VigRe
 }
 
 /// keresés a rendezett listában
-static uint32_t vig_white_find( VigRect rr, uint32_t weight, uint32_t found ) {
+static uint32_t vig_white_find( VigRect rr, uint32_t found, uint32_t weight ) {
    for ( int i=0; i < found; ++i )
       if ( weight > rr[i].weight )
          return i;
@@ -882,15 +882,15 @@ static void vig_white_push( VigRect rr, VigRect r, uint32_t count,
    uint32_t * found, uint32_t * good )
 {
    uint32_t dst = vig_white_find( rr, *found, r->weight );
-   if ( *found < count ) {
-      memmove( rr + dst + 1, rr + dst, (*found-dst-1)*sizeof(struct VtlRect) ); 
-      ++ *found;
-   }
+   *found = MIN( count, *found+1 );
+   memmove( rr + dst + 1, rr + dst, (*found-dst-1)*sizeof(struct VtlRect) ); 
+   rr[dst] = *r;
    *good = rr[*found].weight;
 }
 
 /// VigRect -> VtlRect
 static void vig_rect_set( VtlRect r, VigRect s ) {
+DEBUG("vig_rect_set %d %d %d %d", s->left, s->top, s->width, s->height );	
    r->left = s->left;
    r->top = s->top;
    r->width = s->width;
@@ -902,18 +902,13 @@ static void vig_rect_dump( VigRect r ) {
       r->left, r->top, r->width, r->height );
 }
 
+
 /// egy rect kiolvasása az eredményből
 static void vig_white_result( VigImage img, VtlRect rects, uint32_t * count ) {
    struct VigRect r;
    struct VigRect rr[ *count ];
    uint32_t * ptr = vig_image_address( img );
    uint32_t stride = img->stride;
-
-vig_rect_load( ptr, stride, 0, & r );
-vig_rect_dump( & r );
-*count = 0;
-return;	
-
    vig_rect_load( ptr, stride, 0, & r );
    uint32_t good = 0;
    uint32_t found = 0;
@@ -924,6 +919,9 @@ return;
          break;
       vig_rect_load( ptr, stride, r.link, & r );
    }
+for (int k=0; k < *count; ++k )
+vig_rect_dump( rr+k );
+DEBUG("count: %d", *count );   
    for ( int i=0; i<found; ++i)
       vig_rect_set( rects+i, rr+i );
    *count = found;
