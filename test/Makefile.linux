@@ -50,7 +50,11 @@ rects: rects.c frameproc.c
 rects.run: rects
 	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
         | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
-        | $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
+	| $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
+
+#        | $(RFL) valgrind --tool=callgrind ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
+#        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
+
 
 pyr: pyr.c frameproc.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)

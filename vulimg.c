@@ -783,7 +783,24 @@ VigImage vig_bmp_read( void * stream, VtlStreamOp read ) {
    return ret;
 }
 
-
+bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad ) {
+   char * data = vig_image_address( img );
+   if ( ! data ) return false;
+   int width = img->width;
+   int height = img->height;
+   int stride = vig_image_stride( img );
+   int wps = width * vig_pixel_size( img->pixel );
+   vigResult = VIG_SUCCESS;
+   if ( pad || wps == stride * 8 )
+      return vtl_read_block( stream, read, data, height * stride );
+   int w = DIVC( wps, 8 );
+   for (int r=img->height; 0 < r; --r) {
+      if ( ! vtl_read_block( stream, read, data, w ))
+         return false;
+      data += stride;
+   }
+   return true;
+}
 
 bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad ) {
    char * data = vig_image_address( img );
@@ -792,9 +809,8 @@ bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad ) {
    int height = img->height;
    int stride = vig_image_stride( img );
    int wps = width * vig_pixel_size( img->pixel );
-   vigResult = VIG_SUCCESS;
-   if ( pad || stride * 32 == wps )
-      return vtl_write_block( stream, write, data, height * stride * 4 );
+   if ( pad || wps == stride * 8 )
+      return vtl_write_block( stream, write, data, height * stride );
    int w = DIVC( wps, 8 );
    for (int r=height; 0 < r; --r) {
       if ( ! vtl_write_block( stream, write, data, w ))
@@ -804,22 +820,6 @@ bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad ) {
    return true;
 }
 
-bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad ) {
-   char * data = vig_image_address( img );
-   if ( ! data ) return false;
-   int height = img->height;
-   int stride = vig_image_stride( img );
-   vigResult = VIG_SUCCESS;
-   if ( pad )
-      return vtl_read_block( stream, read, data, height * stride );
-   int w = DIVC( img->width * vig_pixel_size( img->pixel ), 8 );
-   for (int r=img->height; 0 < r; --r) {
-      if ( ! vtl_read_block( stream, read, data, w ))
-         return false;
-      data += stride;
-   }
-   return true;
-}
 
 /// white config beállítás
 static VcpTask vig_white_setup( VigImage img, float limit, float density,
@@ -829,14 +829,14 @@ static VcpTask vig_white_setup( VigImage img, float limit, float density,
    uint32_t w = img->width;
    uint32_t h = img->height;
    uint32_t n4 = 4;
-   while ( n4 < w || n4 < h ) {
+   while ( 0 == n && ( n4 < w || n4 < h ) ) {
 	  ++n;
 	  n4 *= 4;
    }
-   if ( ! vig_whites_grow( n )) return false;
-   if ( ! vig_temp8_grow( w, h )) return false;
+   if ( ! vig_whites_grow( n )) return NULL;
+   if ( ! vig_temp8_grow( w, h )) return NULL;
    VcpTask ret = vig_white8();
-   if ( ! ret ) return false;
+   if ( ! ret ) return NULL;
    VcpStorage ss[2] = { img->stor, vulimg.temp8->stor };
    vcp_task_setup( ret, ss, 0, 0, 0, NULL );
    VcpPart ps = vcp_task_parts( ret, n );
@@ -854,7 +854,7 @@ static VcpTask vig_white_setup( VigImage img, float limit, float density,
       p->countZ = 1;
       p->constants = pr;
    }
-   return false;
+   return ret;
 }
 
 /// egy rect betöltése a képből
@@ -897,12 +897,23 @@ static void vig_rect_set( VtlRect r, VigRect s ) {
    r->height = s->height;
 }
 
+static void vig_rect_dump( VigRect r ) {
+   DEBUG( "RECT ->%d, %d [%d,%d]/[%d,%d]", r->link, r->weight, 
+      r->left, r->top, r->width, r->height );
+}
+
 /// egy rect kiolvasása az eredményből
 static void vig_white_result( VigImage img, VtlRect rects, uint32_t * count ) {
    struct VigRect r;
    struct VigRect rr[ *count ];
    uint32_t * ptr = vig_image_address( img );
    uint32_t stride = img->stride;
+
+vig_rect_load( ptr, stride, 0, & r );
+vig_rect_dump( & r );
+*count = 0;
+return;	
+
    vig_rect_load( ptr, stride, 0, & r );
    uint32_t good = 0;
    uint32_t found = 0;
@@ -927,7 +938,7 @@ bool vig_white_rects( VigImage img, float limit,
    vigResult = VIG_PIXELERR;
    if ( ! vig_pixel_same( vix_g8, img->pixel )) return false;
    vigResult = VIG_COORDERR;
-   if ( 0 >= *count ) return false;
+   if ( *count <= 0 ) return false;
    if ( 0 > limit || 1 < limit ) return false;
    VcpTask t = vig_white_setup( img, limit, density, minSize, maxDist );
    if ( ! t ) return false;
