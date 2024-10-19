@@ -19,18 +19,32 @@
 
 #define UGR 16
 #define FLOAT float
+#define TAIL 0xffffffff
+#define EMPTY 0xfffffffe
 
 #ifdef VULKAN
+struct VtlRect {
+   INT left;
+   INT top;
+   UINT width;
+   UINT height;
+};
+
 struct VigRect {
-   UINT dx_dy;
+   UINT link;
    UINT weight;
    UINT left_top;
    UINT width_height;
 };
+
+struct VigCRect {
+   UINT id;
+   UINT link;
+   UINT weight, left, top, width, height;
+};
 #else
 struct VigRect {
-   U16 dx;
-   U16 dy;
+   UINT link;
    UINT weight;
    U16 left;
    U16 top;
@@ -83,9 +97,10 @@ struct VigPyrParams {
 struct VigWhiteParams {
    STRUCT VigImgParam img;
    FLOAT limit;
-   FLOAT dist;
+   FLOAT density;
+   UINT minSize;
+   UINT maxDist;
    UINT phase;
-   UINT count;
 };
 
 struct VigJoinParams {
@@ -115,6 +130,14 @@ struct VigDeltaParams {
    INT min;
    INT max;
 };
+
+struct VigRectParams {
+   STRUCT VigImgParam img;
+   STRUCT VtlRect rect;
+   UINT pixSize;
+   UINT pixVal;
+};
+   
 
 #ifndef VULKAN
 

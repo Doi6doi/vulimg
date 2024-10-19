@@ -1,5 +1,5 @@
-#TESTS=basic mini diff pyr
-TESTS=basic
+#TESTS=basic mini diff pyr rects
+TESTS=rects
 TEMPS=smiley.raw smiley2.bmp
 
 FFMPEG=ffmpeg
@@ -40,6 +40,14 @@ diff: diff.c frameproc.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)
 
 diff.run: diff
+	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
+        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
+        | $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
+
+rects: rects.c frameproc.c
+	$(CC) $(CFL) -o $@ $^ $(LFL)
+
+rects.run: rects
 	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
         | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
         | $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)

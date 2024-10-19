@@ -5,6 +5,9 @@
 #include <vultools.h>
  
 typedef uint32_t VigCoord;
+
+typedef uint32_t VigValue;
+
 typedef enum VigPixel { vix_Unknown, vix_1, vix_8, vix_g8, vix_s8, 
    vix_rgb24, vix_ybr24, vix_rgba32, vix_argb32 } VigPixel;
 typedef enum VigPlane { vpl_Unknown, vpl_R, vpl_G, vpl_B, vpl_Y, vpl_Cb, vpl_Cr } VigPlane;
@@ -66,19 +69,23 @@ bool vig_image_join( VigImage dst, VigImage src, VigPlane plane );
 /// transform image
 bool vig_image_transform( VigImage src, VigImage dst, VigTransform trans );
 /// shift image pixel values
-bool vig_image_delta( VigImage src, uint32_t pixel, VigImage dst );
+bool vig_image_delta( VigImage src, VigValue pixel, VigImage dst );
 /// difference of two images
 bool vig_image_diff( VigImage a, VigImage b, VigImage dst );
 /// sum of difference
 bool vig_image_diffsum( VigImage a, VtlRect rect, VigImage b,
    VigCoord bLeft, VigCoord bTop, uint64_t * diff );
 /// average pixel
-bool vig_image_avg( VigImage img, uint32_t * pix );
+bool vig_image_avg( VigImage img, VigValue * pix );
 /// create "pyramid" of an image: /2, /4, ... scaled images
 bool vig_image_pyramid( VigImage src, VigImage dst );
 /// get rects of interest
 bool vig_white_rects( VigImage img, float limit, 
-   float dist, VtlRect rects, uint32_t * count );
+   float density, uint32_t minSize, uint32_t maxDist, 
+   VtlRect rects, uint32_t * count );
+	
+/// draw rectangle
+bool vig_draw_rect( VigImage img, VtlRect rect, VigValue pixel );
 
 /// reads raw image
 bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad );
