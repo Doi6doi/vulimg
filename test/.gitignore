@@ -6,5 +6,8 @@ ide.txt
 *.mkv
 *.elf
 
+foltok*.bmp
+pottyok*.bmp
+
 /*.obj
 /*.exe
