@@ -1,15 +1,10 @@
-basic
 smiley.raw
 smiley2.bmp
 test2.bmp
 ide.txt
-diff
-mini
-pyr
-rects
 *.mp4
 *.mkv
-
+*.elf
 
 /*.obj
 /*.exe

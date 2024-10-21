@@ -98,4 +98,8 @@ VigImage vig_bmp_read( void * stream, VtlStreamOp read );
 bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write );
 
 
+void vig_drawallrects( VigImage img, uint32_t n );
+
+
+
 #endif // VULIMGH

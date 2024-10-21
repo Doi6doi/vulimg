@@ -133,6 +133,7 @@ bool vig_run( VcpTask t ) {
       ;
    }
    if (( vigResult = vcp_error() )) return false;
+   vigResult = VIG_SUCCESS;
    return true;
 }
 
@@ -715,18 +716,31 @@ static int vig_pixel_bmpbits( VigPixel pix ) {
    }
 }
 
+static bool vig_bmp_write_pal8( void * stream, VtlStreamOp write ) {
+   static bool first = true;
+   static uint32_t cols[256];
+   if ( first ) {
+      for (int i=0; i<256; ++i)
+         cols[i] = i << 16 | i << 8 | i;
+      first = false;
+   } 
+   return vtl_write_block( stream, write, cols, 256*4 );
+}
+
+
 bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write ) {
    if ( ! vig_inited() ) return false;
    if ( ! vig_isimage( img )) return false;
    int bits = vig_pixel_bmpbits( img->pixel );
    if ( 0 > bits ) return false;
    uint32_t hsz = sizeof( struct VigBmpFileHeader )+sizeof( struct VigBmpInfoHeader );
+   uint32_t psz = 8 == bits ? 256*4 : 0;
    uint32_t isz = vig_image_stride(img) * img->height;
    struct VigBmpFileHeader bfh = {
       .magic = VT_L16( 0x4d42 ),
-      .size = VT_L32( hsz + isz ),
+      .size = VT_L32( hsz + psz + isz ),
       .reserved = 0,
-      .address = VT_L32( hsz )
+      .address = VT_L32( hsz + psz )
    };
    vigResult = VIG_STREAMERR;
    if ( ! vtl_write_block( stream, write, &bfh, sizeof(bfh))) return false;
@@ -744,6 +758,7 @@ bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write ) {
 	  .impcols = 0
    };
    if ( ! vtl_write_block( stream, write, &bih, sizeof(bih))) return false;
+   if ( 0 < psz && ! vig_bmp_write_pal8( stream, write )) return false;
    char * data = vig_image_address( img );
    int stride = vig_image_stride(img);
    for (int r=img->height-1; 0 <=r; --r) {
@@ -829,7 +844,7 @@ static VcpTask vig_white_setup( VigImage img, float limit, float density,
    uint32_t w = img->width;
    uint32_t h = img->height;
    uint32_t n4 = 4;
-   while ( 0 == n && ( n4 < w || n4 < h ) ) {
+   while ( ( n4 < w || n4 < h ) ) {
 	  ++n;
 	  n4 *= 4;
    }
@@ -841,24 +856,27 @@ static VcpTask vig_white_setup( VigImage img, float limit, float density,
    vcp_task_setup( ret, ss, 0, 0, 0, NULL );
    VcpPart ps = vcp_task_parts( ret, n );
    n4 = 4;
+   uint32_t z = 4;
    for ( int i=0; i<n; ++i ) {
       VigWhiteParams pr = vulimg.whites+i;
       vig_imgpar( img, & pr->img );
       pr->phase = i;
       pr->limit = limit;
+      pr->density = density;
       pr->minSize = minSize;
       pr->maxDist = maxDist;
 	  VcpPart p = ps+i;
-	  p->countX = DIVC( img->width * 8, 32 );
-	  p->countY = DIVC( img->height, n4 );
+	  p->countX = DIVC( img->width, z );
+	  p->countY = DIVC( img->height, z );
       p->countZ = 1;
       p->constants = pr;
+      z *= 4;
    }
    return ret;
 }
 
 /// egy rect betöltése a képből
-static void vig_rect_load( uint32_t * ptr, uint32_t stride, uint32_t link, VigRect r ) {
+static void vig_rect_load( uint32_t * ptr, uint32_t stride, VigRect r ) {
    r->link = ptr[0];
    r->weight = ptr[stride];
    uint32_t lt = ptr[2*stride];
@@ -890,7 +908,6 @@ static void vig_white_push( VigRect rr, VigRect r, uint32_t count,
 
 /// VigRect -> VtlRect
 static void vig_rect_set( VtlRect r, VigRect s ) {
-DEBUG("vig_rect_set %d %d %d %d", s->left, s->top, s->width, s->height );	
    r->left = s->left;
    r->top = s->top;
    r->width = s->width;
@@ -898,7 +915,7 @@ DEBUG("vig_rect_set %d %d %d %d", s->left, s->top, s->width, s->height );
 }
 
 static void vig_rect_dump( VigRect r ) {
-   DEBUG( "RECT ->%d, %d [%d,%d]/[%d,%d]", r->link, r->weight, 
+   DEBUG( "RECT -> %d, %d [%d,%d]/[%d,%d]", r->link, r->weight, 
       r->left, r->top, r->width, r->height );
 }
 
@@ -909,19 +926,21 @@ static void vig_white_result( VigImage img, VtlRect rects, uint32_t * count ) {
    struct VigRect rr[ *count ];
    uint32_t * ptr = vig_image_address( img );
    uint32_t stride = img->stride;
-   vig_rect_load( ptr, stride, 0, & r );
+   vig_rect_load( ptr, stride, & r );
    uint32_t good = 0;
    uint32_t found = 0;
    while ( EMPTY != r.link ) {
+// DEBUG("readrect %p %d", ptr, r.link );	   
 	  if ( good < r.weight )
 		 vig_white_push( rr, & r, *count, & found, & good );
       if ( TAIL == r.link )
          break;
-      vig_rect_load( ptr, stride, r.link, & r );
+      vig_rect_load( ptr+r.link, stride, & r );
    }
-for (int k=0; k < *count; ++k )
+/*for (int k=0; k < *count; ++k )
 vig_rect_dump( rr+k );
 DEBUG("count: %d", *count );   
+*/
    for ( int i=0; i<found; ++i)
       vig_rect_set( rects+i, rr+i );
    *count = found;
@@ -941,8 +960,14 @@ bool vig_white_rects( VigImage img, float limit,
    VcpTask t = vig_white_setup( img, limit, density, minSize, maxDist );
    if ( ! t ) return false;
    vigResult = VIG_TASKERR;
+uint32_t * p = vig_image_address( vulimg.temp8 );
+DEBUG( "DST1: %d", p[1] );
    if ( ! vig_run( t )) return false;
+DEBUG( "RUN %d", vigResult );
+   vig_drawallrects( img, 0 );
+DEBUG( "NOW %d", vigResult );
    vig_white_result( vulimg.temp8, rects, count );
+DEBUG( "RSLT %d", vigResult );
    return true;
 }
 
@@ -1056,9 +1081,26 @@ bool vig_image_delta( VigImage src, VigValue pixel, VigImage dst ) {
    return vig_run( t );
 }
 
+/*static void cdraw8( VigImage img, VtlRect rect, VigValue pixel ) {
+   if ( 8 != vig_pixel_size( img->pixel )) return;
+   uint8_t * p = vig_image_address( img );
+   uint32_t s = vig_image_stride( img );
+   for ( int y = 0; y < rect->height; ++y ) {
+      p[ (rect->top+y)*s + rect->left ] = pixel;
+      p[ (rect->top+y)*s + rect->left + rect->width-1 ] = pixel;
+   }
+   for ( int x = 0; x < rect->width; ++x ) {
+      p[ rect->top*s + rect->left+x ] = pixel;
+      p[ (rect->top+rect->height-1)*s + rect->left+x ] = pixel;
+   }
+}   
+*/
+
 /// draw rectangle
 bool vig_draw_rect( VigImage img, VtlRect rect, VigValue pixel ) {
    if ( ! vig_inited() ) return false;
+   vigResult = VIG_SUCCESS;
+   if ( 0 == rect->width * rect->height ) return true;
    vigResult = VIG_PIXELERR;
    struct VigRectParams pars = { .pixVal = pixel, 
 	  .pixSize = vig_pixel_size( img->pixel ) };
@@ -1072,5 +1114,27 @@ bool vig_draw_rect( VigImage img, VtlRect rect, VigValue pixel ) {
    return vig_run( t );
 }
 
+void vig_drawallrects( VigImage img, uint32_t n ) {
+   VigImage d = vulimg.temp8;
+   uint32_t z = 4 << (2*n);
+   uint32_t s = d->stride;
+   uint32_t * p = vig_image_address( d );
+DEBUG("debug_data %d", p[DIDX] );	    
+   struct VigRect gr;
+   struct VtlRect r;
+   for ( int y=0; y < img->height; y += z ) {
+      for ( int x=0; x < img->width; x += z ) {
+		  uint32_t idx = y*s + x/4;
+		  vig_rect_load( p+idx, s, & gr );
+		  if ( EMPTY != gr.link ) {
+fprintf( stderr, "x:%d y:%d ", x, y );			  
+		     vig_rect_dump( & gr );
+   		     vig_rect_set( & r, & gr );
+//	   	     cdraw8( img, & r, 0xff );
+             vig_draw_rect( img, & r, 0xff );
+          }
+	  }
+   }
+}
 
 

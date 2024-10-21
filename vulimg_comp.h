@@ -21,6 +21,7 @@
 #define FLOAT float
 #define TAIL 0xffffffff
 #define EMPTY 0xfffffffe
+#define DIDX 12
 
 #ifdef VULKAN
 struct VtlRect {

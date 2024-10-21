@@ -10,10 +10,13 @@
 VigImage next( FrameProc p ) {
    struct VtlRect r[NRECT];
    uint32_t n = NRECT;
-   vig_white_rects( p->frame, 0.3, 0.2, 100, 20, r, &n );
+   vig_white_rects( p->frame, 0.3, 0.9, 100, 20, r, &n );
    vig_check_fail();
-   for ( int i=0; i<n; ++i)
+   for ( int i=0; i<n; ++i) {
+VtlRect s = r+i;	   
+fprintf( stderr, "draw rect %d %d %d %d", s->left, s->top, s->width, s->height );
       vig_draw_rect( p->frame, r+i, 0xff );
+   }
    return p->frame;
 }
 

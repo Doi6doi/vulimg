@@ -1,5 +1,5 @@
-#TESTS=basic mini diff pyr rects
-TESTS=rects
+#TESTS=basic mini diff pyr rects foltok
+TESTS=foltok
 TEMPS=smiley.raw smiley2.bmp
 
 FFMPEG=ffmpeg
@@ -28,26 +28,29 @@ RFL=LD_LIBRARY_PATH=$(subst $(SPACE),:,$(LIBDIR))
 test: $(TESTS:=.run)
 
 clean:
-	$(RM) $(TESTS) $(TEMPS)
+	$(RM) $(TESTS:=.elf) $(TEMPS)
 
-mini: mini.c
+mini.elf: mini.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)
 
-basic: basic.c
+basic.elf: basic.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)
 
-diff: diff.c frameproc.c
+foltok.elf: foltok.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)
 
-diff.run: diff
+diff.elf: diff.c frameproc.c
+	$(CC) $(CFL) -o $@ $^ $(LFL)
+
+diff.run: diff.elf
 	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
         | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
         | $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
 
-rects: rects.c frameproc.c
+rects.elf: rects.c frameproc.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)
 
-rects.run: rects
+rects.run: rects.elf
 	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
         | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
 	| $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
@@ -56,10 +59,10 @@ rects.run: rects
 #        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
 
 
-pyr: pyr.c frameproc.c
+pyr.elf: pyr.c frameproc.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)
 
-pyr.run: pyr
+pyr.run: pyr.elf
 	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
         | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX)\
 	| $(FFPLAY) - -f rawvideo -video_size $(OWIDTH)x$(OHEIGHT) -pixel_format $(FPIX)
@@ -69,7 +72,7 @@ pyr.run: pyr
 #	| cat > /dev/null
 #	> out.raw
 
-%.run: %
+%.run: %.elf
 	$(RFL) ./$<
 
 .PHONY: %.run

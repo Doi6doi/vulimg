@@ -1,6 +1,7 @@
 #version 450
 #include "vulimg_comp.h"
 
+
 layout (local_size_x=UGR, local_size_y=UGR, local_size_z=1) in;
 
 layout (push_constant) uniform Constants { 
@@ -96,11 +97,10 @@ void astore() {
 }
 
 /// store link of a
-void astorelink( uint link ) {
-   a.link = link;
-   dst[ a.id ] = link;
+void storelink( uint id, uint link ) {
+   dst[ id ] = link;
 }
-
+ 
 void phase0() {
    uint lim = uint( p.limit*255 );
    uint y = gl_GlobalInvocationID.y;
@@ -115,19 +115,12 @@ void phase0() {
    for ( int i = 0; i < my; ++i ) {
       uint v = src[ a.id+i*s1 ];
       for ( int j=0; j < mx; ++j ) {
-         uint p = bitfieldExtract( v, i*8, 8 );
+         uint p = bitfieldExtract( v, j*8, 8 );
          if ( lim <= p )
             aextend( x4+j, y4+i, p );
       }
    }
    astore();
-}
-
-/// width or height limit of iteration
-uint ilimit( uint lim, uint v ) {
-   if ( v+zi <= lim ) return 4;
-   uint rest = lim-v-zi;
-   return (rest+3)/4;
 }
 
 /// copy rect b to a
@@ -159,22 +152,26 @@ void ijoin( uint id ) {
    if ( EMPTY == dst[id] ) return;
    bload( id );
    if ( EMPTY == a.link ) {
-      // if a is empty, write b to a
+      // if a is empty, write b to a, clear b
+      a.link = TAIL;
       btoa(false);
       astore();
-      astorelink( b.link );
+      storelink( b.id, EMPTY );
       return;
    }
    iunion();
-   if ( a.weight < p.density * a.width * a.height ) {
-      // if union is too sparse, skip to b
-      astorelink(b.id);
+// dst[DIDX] = uint( p.density * 1000 );
+   if ( a.weight < uint( p.density * 255 * a.width * a.height ) ) {
+      dst[DIDX] = 1702;
+      // if union is too sparse, link to b
+      storelink( a.id, b.id );
       btoa(true);
       return;
    }
    // store union and skip b
+   a.link = TAIL;
    astore();
-   astorelink(b.link);
+   storelink( b.id, EMPTY );
 }   
 
 /// set a to next in chain if possible
@@ -189,7 +186,7 @@ bool anext() {
 bool adrop() {
    if ( EMPTY == a.link ) return false;
    if ( TAIL == a.link ) {
-      astorelink( EMPTY );
+      storelink( a.id, EMPTY );
       return false;
    }
    uint save = a.id;
@@ -198,7 +195,7 @@ bool adrop() {
    astore();
    return true;
 }
-
+ 
 /// is pixel on edge of current z x z area
 bool onEdge( uint i ) {
    uint im = i % z;
@@ -226,21 +223,27 @@ bool ifilter() {
 void phasei() {
    z = 4 << (2*p.phase);
    zi = z/4;
-   zk = zi/4;
    uint yi = gl_GlobalInvocationID.y * z;
    if ( p.img.height <= yi ) return;
    uint xi = gl_GlobalInvocationID.x * z;
    if ( p.img.width <= xi ) return;
+// if ( 0 != xi || z != yi ) return;   
+// if ( 0 != xi || z != yi ) return;   
    strides();
-   head = (yi/4)*s1 + xi/4;
-   uint mx = ilimit( p.img.width, xi );
-   uint my = ilimit( p.img.height, yi );
+   head = yi*s1 + xi/4;
    aload( head );
+   uint y = yi;
    uint nx = 1;
-   for ( uint i=0; i<my; ++i ) {
-      for ( uint j=nx; j<mx; ++j )
-         ijoin( head + i*4*s1 + j );
-      if ( 1 == nx ) nx = 0;
+   for ( uint j=0; j<4; ++j ) {
+      if ( p.img.height <= y ) break;
+      uint i = (0==j ? 1:0);
+      uint x = xi + i*zi;
+      for ( ; i<4; ++i ) {
+         if ( p.img.width <= x ) break;
+         ijoin( y*s1 + x/4 );
+         x += zi;
+      }
+      y += zi;
    }
    lastPhase = p.img.width <= z && p.img.height <= z;
    while ( ifilter() )
@@ -249,6 +252,8 @@ void phasei() {
 
 void main() {
    strides();
+if ( 2 < p.phase )
+   return;
    if ( 0 == p.phase )
       phase0();
       else phasei();
