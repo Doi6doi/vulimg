@@ -1,0 +1,259 @@
+#version 450
+#include "vulimg_comp.h"
+
+layout (local_size_x=UGR, local_size_y=UGR, local_size_z=1) in;
+
+layout (push_constant) uniform Constants { 
+   VigWhiteParams p;
+};
+
+layout (binding = 0 ) readonly buffer Source {
+   uint src[];
+};
+
+layout (binding = 1 ) buffer Dest {
+   uint dst[];
+};
+
+uint head;
+VigRect a, b;
+uint s1, s2, s3;
+uint z, zi, zk;
+bool lastPhase;
+
+/// calculate strides
+void strides() {
+   s1 = p.img.stride;
+   s2 = s1+s1;
+   s3 = s2+s1;
+}
+
+/// fill local rect with zeros
+void ainit(uint x, uint y) {
+   a.id = y*4*s1 + x;
+   a.link = EMPTY;
+}
+
+/// add a point to local rect
+void aextend( uint x, uint y, uint p ) {
+   if ( EMPTY == a.link ) {
+      a.left = x;
+      a.top = y;
+      a.width = 1;
+      a.height = 1;
+      a.weight = p;
+      a.link = TAIL;
+   } else {
+      if ( x < a.left ) {
+         a.width += (a.left-x);
+         a.left = x;
+      } else if ( a.left+a.width <= x ) {
+         a.width = x-a.left+1;
+      }
+      if ( y < a.top ) {
+         a.height += (a.top-y);
+         a.top = y;
+      } else if ( a.top+a.height <= y ) {
+         a.height = y-a.top+1;
+      }
+      a.weight += p;
+   }
+}
+
+/// load rect a
+void aload( uint at ) {
+   a.id = at;
+   a.link = dst[at];
+   a.weight = dst[at+s1];
+   uint v = dst[at+s2];
+   a.left = bitfieldExtract( v, 0, 16 );
+   a.top = bitfieldExtract( v, 16, 16 );
+   v = dst[at+s3];
+   a.width = bitfieldExtract( v, 0, 16 );
+   a.height = bitfieldExtract( v, 16, 16 );
+}
+
+/// load rect b
+void bload( uint at ) {
+   b.id = at;
+   b.link = dst[at];
+   b.weight = dst[at+s1];
+   uint v = dst[at+s2];
+   b.left = bitfieldExtract( v, 0, 16 );
+   b.top = bitfieldExtract( v, 16, 16 );
+   v = dst[at+s3];
+   b.width = bitfieldExtract( v, 0, 16 );
+   b.height = bitfieldExtract( v, 16, 16 );
+}
+
+/// store local rect to dst
+void astore() {
+   uint at = a.id;
+   dst[at] = a.link;
+   dst[at+s1] = a.weight;
+   dst[at+s2] = a.top << 16 | a.left;
+   dst[at+s3] = a.height << 16 | a.width;
+}
+
+/// store link of a
+void storelink( uint id, uint link ) {
+   dst[ id ] = link;
+}
+ 
+void phase0() {
+   uint lim = uint( p.limit*255 );
+   uint y = gl_GlobalInvocationID.y;
+   uint y4 = y*4;
+   if ( p.img.height <= y4 ) return;
+   uint x = gl_GlobalInvocationID.x;
+   uint x4 = x*4;
+   if ( p.img.width <= x4 ) return;
+   uint my = min( 4, p.img.height - y4 );
+   uint mx = min( 4, p.img.width - x4 );
+   ainit( x, y );
+   for ( int i = 0; i < my; ++i ) {
+      uint v = src[ a.id+i*s1 ];
+      for ( int j=0; j < mx; ++j ) {
+         uint p = bitfieldExtract( v, j*8, 8 );
+         if ( lim <= p )
+            aextend( x4+j, y4+i, p );
+      }
+   }
+   astore();
+}
+
+/// copy rect b to a
+void btoa( bool all ) {
+   a.weight = b.weight;
+   a.left = b.left;
+   a.top = b.top;
+   a.width = b.width;
+   a.height = b.height;
+   if ( all ) {
+      a.id = b.id;
+      a.link = b.link;
+   }
+}
+
+/// create union of and b in a
+void iunion() {
+   uint right = max( a.left+a.width, b.left+b.width );
+   uint bottom = max( a.top+a.height, b.top+b.height );
+   a.left = min( a.left, b.left );
+   a.top = min( a.top, b.top );
+   a.width = right - a.left;
+   a.height = bottom - a.top;
+   a.weight += b.weight;
+}
+
+/// join two linked lists
+void ijoin( uint id ) {
+   if ( EMPTY == dst[id] ) return;
+   bload( id );
+   if ( EMPTY == a.link ) {
+      // if a is empty, write b to a, clear b
+      a.link = TAIL;
+      btoa(false);
+      astore();
+      storelink( b.id, EMPTY );
+      return;
+   }
+   iunion();
+// dst[DIDX] = uint( p.density * 1000 );
+   if ( a.weight < uint( p.density * 255 * a.width * a.height ) ) {
+      dst[DIDX] = 1702;
+      // if union is too sparse, link to b
+      storelink( a.id, b.id );
+      btoa(true);
+      return;
+   }
+   // store union and skip b
+   a.link = TAIL;
+   astore();
+   storelink( b.id, EMPTY );
+}   
+
+/// set a to next in chain if possible
+bool anext() {
+   if ( EMPTY == a.link || TAIL == a.link )
+      return false;
+   aload( a.link );
+   return true;
+}
+
+/// drop a from chain
+bool adrop() {
+   if ( EMPTY == a.link ) return false;
+   if ( TAIL == a.link ) {
+      storelink( a.id, EMPTY );
+      return false;
+   }
+   uint save = a.id;
+   aload( a.link );
+   a.id = save;
+   astore();
+   return true;
+}
+ 
+/// is pixel on edge of current z x z area
+bool onEdge( uint i ) {
+   uint im = i % z;
+   return im < p.maxDist || (z-i) <= p.maxDist;
+}
+
+/// filter out too small rects
+/// unless on edge in not last phase
+bool ifilter() {
+   if ( EMPTY == a.link ) return false;
+   /// if large, skip 
+   if ( p.minSize <= a.width * a.height )
+      return anext();
+   /// if last phase, drop
+   if ( lastPhase )
+      return adrop();
+   /// if edge, skip
+   if ( onEdge( a.left ) || onEdge( a.top ) 
+      || onEdge( a.left+a.width ) || onEdge( a.top + a.height ))
+      return anext();
+   /// else drop
+   return adrop();
+}
+  
+void phasei() {
+   z = 4 << (2*p.phase);
+   zi = z/4;
+   uint yi = gl_GlobalInvocationID.y * z;
+   if ( p.img.height <= yi ) return;
+   uint xi = gl_GlobalInvocationID.x * z;
+   if ( p.img.width <= xi ) return;
+// if ( 0 != xi || z != yi ) return;   
+// if ( 0 != xi || z != yi ) return;   
+   strides();
+   head = yi*s1 + xi/4;
+   aload( head );
+   uint y = yi;
+   uint nx = 1;
+   for ( uint j=0; j<4; ++j ) {
+      if ( p.img.height <= y ) break;
+      uint i = (0==j ? 1:0);
+      uint x = xi + i*zi;
+      for ( ; i<4; ++i ) {
+         if ( p.img.width <= x ) break;
+         ijoin( y*s1 + x/4 );
+         x += zi;
+      }
+      y += zi;
+   }
+   lastPhase = p.img.width <= z && p.img.height <= z;
+   while ( ifilter() )
+      ;
+}
+
+void main() {
+   strides();
+if ( 2 < p.phase )
+   return;
+   if ( 0 == p.phase )
+      phase0();
+      else phasei();
+}
