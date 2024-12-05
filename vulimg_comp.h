@@ -2,6 +2,7 @@
 #define VULIMG_COMPH
 
 #ifdef VULKAN
+#pragma shader_stage(compute)
 
 #define INT int
 #define UINT uint
@@ -24,6 +25,7 @@
 #define DIDX 12
 
 #ifdef VULKAN
+
 struct VtlRect {
    INT left;
    INT top;
@@ -31,28 +33,21 @@ struct VtlRect {
    UINT height;
 };
 
-struct VigRect {
-   UINT link;
-   UINT weight;
-   UINT left_top;
-   UINT width_height;
-};
+#endif
 
-struct VigCRect {
+struct VigRect {
    UINT id;
    UINT link;
-   UINT weight, left, top, width, height;
+   UINT weight;
+   UINT left, top, width, height;
 };
-#else
-struct VigRect {
+
+struct VigCloud {
+   UINT id;
    UINT link;
    UINT weight;
-   U16 left;
-   U16 top;
-   U16 width;
-   U16 height;
+   FLOAT mx, my, dx, dy;
 };
-#endif
 
 struct VigImgParam {
    UINT width;
@@ -101,6 +96,12 @@ struct VigWhiteParams {
    FLOAT density;
    UINT minSize;
    UINT maxDist;
+   UINT phase;
+};
+
+struct VigWCloudParams {
+   STRUCT VigImgParam img;
+   FLOAT maxDist;
    UINT phase;
 };
 

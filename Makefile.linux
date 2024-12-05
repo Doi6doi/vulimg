@@ -2,7 +2,11 @@ include Makefile.defs
 
 DIRS=$(VULCMPDIR) $(VULTOOLSDIR)
 
-COMPS=copy1 copy32 join3 plane3 trans diff pyr white8 dsum delta8 rect
+GLSLIS=copy1 copy32 join3 plane3 trans diff pyr dsum delta8
+GLSLDS=rect 
+GLSLWS=white8 wcloud8
+
+GLSLS=$(GLSLSIS) $(GLSLWS) $(GLSLSDS)
 
 CC=gcc -g $(DIRS:%=-L%) $(DIRS:%=-I%)
 GLSLC=glslc
@@ -39,13 +43,19 @@ help:
 %.inc: %.spv
 	$(XXD) -i $< > $@
 
-%.spv: %.comp vulimg_comp.h
+%.spv: %.glsl vulimg_comp.h
 	$(GLSLC) -o $@ $<
 
-vulimg.o: vulimg.c vulimg.h $(COMPS:=.inc)
+vulimg.o: vulimg.c vulimg_impl.h vulimg.h $(GLSLIS:=.inc)
 	$(CC) -c -fPIC -Wall -o $@ $<
 
-$(LIB): vulimg.o
+draw.o: draw.c vulimg_impl.h vulimg.h $(GLSLDS:=.inc)
+	$(CC) -c -fPIC -Wall -o $@ $<
+
+white.o: white.c vulimg_impl.h vulimg.h $(GLSLWS:=.inc)
+	$(CC) -c -fPIC -Wall -o $@ $<
+
+$(LIB): vulimg.o draw.o white.o
 	$(CC) -shared -o $@ $^ -lvulcmp
 
 .PHONY: test

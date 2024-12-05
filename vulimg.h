@@ -83,9 +83,14 @@ bool vig_image_pyramid( VigImage src, VigImage dst );
 bool vig_white_rects( VigImage img, float limit, 
    float density, uint32_t minSize, uint32_t maxDist, 
    VtlRect rects, uint32_t * count );
-	
+/// get clouds of interest
+bool vig_white_clouds( VigImage img, float maxDist,
+   VtlCloud clouds, uint32_t * count );	
+   
 /// draw rectangle
 bool vig_draw_rect( VigImage img, VtlRect rect, VigValue pixel );
+/// draw cloud
+bool vig_draw_cloud( VigImage img, VtlCloud cloud, VigValue pixel );
 
 /// reads raw image
 bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad );
@@ -99,6 +104,7 @@ bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write );
 
 
 void vig_drawallrects( VigImage img, uint32_t n );
+void vig_drawallclouds( VigImage img, uint32_t n );
 
 
 
