@@ -1,5 +1,6 @@
 #TESTS=basic mini diff pyr rects foltok
-TESTS=foltok
+TESTS=deshake
+# TESTS=foltok
 TEMPS=smiley.raw smiley2.bmp
 
 FFMPEG=ffmpeg
@@ -58,6 +59,13 @@ rects.run: rects.elf
 #        | $(RFL) valgrind --tool=callgrind ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
 #        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) \
 
+deshake.elf: deshake.c frameproc.c
+	$(CC) $(CFL) -o $@ $^ $(LFL)
+
+deshake.run: deshake.elf
+	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
+        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX)\
+	| $(FFPLAY) - -f rawvideo -video_size $(OWIDTH)x$(OHEIGHT) -pixel_format $(FPIX)
 
 pyr.elf: pyr.c frameproc.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)

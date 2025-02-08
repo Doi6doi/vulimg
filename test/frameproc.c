@@ -6,12 +6,11 @@ static uint32_t vfp_width = 0;
 static uint32_t vfp_height = 0;
 static VigPixel vfp_pixel = vix_Unknown;
 
-
-void vfp_init( VcpStr name, uint32_t flags, FrameProc fp, int argc, 
-   char ** argv, vfp_arg_reader read ) 
+void vfp_init( VcpStr name, uint32_t flags, FrameData d, FrameProc p, int argc, 
+   char ** argv ) 
 {
    int at = 1;
-   while ( read( fp, argc, argv, & at ) )
+   while ( p->arg( d, argc, argv, & at ) )
       ;
    if ( ! vfp_width )
       vtl_die( "Image width missing (-w)" );
@@ -23,21 +22,23 @@ void vfp_init( VcpStr name, uint32_t flags, FrameProc fp, int argc,
       vcp_check_fail();
    if ( ! vig_init( vfp_vc ))
       vig_check_fail();
-   if ( ! ( fp->frame = vig_image_create( vfp_width, vfp_height, vfp_pixel )))
+   VigImage * frame = p->frame( d );
+   if ( ! (*frame = vig_image_create( vfp_width, vfp_height, vfp_pixel )))
       vig_check_fail();
 }
    
-void vfp_done( FrameProc fp ) {
-   vig_image_free( fp->frame );
+void vfp_done( FrameData fd, FrameProc fp ) {
+   vig_image_free( *fp->frame( fd ) );
    vig_done();
    vcp_done( vfp_vc );
 }
 
-void vfp_process( FrameProc fp, vfp_next_proc next ) {
+void vfp_process( FrameData fd, FrameProc fp ) {
    VigImage out;
-   while ( vig_raw_read( fp->frame, stdin, vtl_fread, false )) {
-      out = next( fp );
-      vig_raw_write( out, stdout, vtl_fwrite, false );
+   VigImage * img = fp->frame(fd);
+   while ( vig_raw_read( *img, stdin, vtl_fread, false )) {
+      if ( out = fp->next( fd ) )
+         vig_raw_write( out, stdout, vtl_fwrite, false );
    }
 }
 
@@ -82,7 +83,7 @@ bool vfp_nat_arg( int argc, char ** argv, int * at, uint32_t * ret ) {
 }
    
 
-bool vfp_next_arg( FrameProc fp, int argc, char ** argv, int * at ) {
+bool vfp_arg( FrameData fd, int argc, char ** argv, int * at ) {
    if ( argc <= *at ) return false;
    VcpStr s = argv[(*at)++];
    if ( vtl_same( s, "-w" ))

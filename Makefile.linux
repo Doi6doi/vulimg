@@ -2,7 +2,7 @@ include Makefile.defs
 
 DIRS=$(VULCMPDIR) $(VULTOOLSDIR)
 
-GLSLIS=copy1 copy32 join3 plane3 trans diff pyr dsum delta8
+GLSLIS=copy1 copy32 join3 plane3 trans diff pyr dsum add8
 GLSLDS=rect 
 GLSLWS=white8 wcloud8
 

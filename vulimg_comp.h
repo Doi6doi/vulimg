@@ -125,7 +125,7 @@ struct VigDSumParams {
    UINT height;
 };
 
-struct VigDeltaParams {
+struct VigAddParams {
    STRUCT VigImgParam img;
    UINT compCount;
    UINT pixel;
@@ -142,9 +142,7 @@ struct VigRectParams {
    
 
 #ifndef VULKAN
-
 #pragma pack(pop)
-
 #endif
 
 #endif // VULIMG_COMPH

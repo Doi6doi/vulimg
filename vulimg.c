@@ -42,7 +42,7 @@ int vigResult = VIG_SUCCESS;
 #include "diff.inc"
 #include "pyr.inc"
 #include "dsum.inc"
-#include "delta8.inc"
+#include "add8.inc"
 
 /*
 static void ewrite( VcpStr msg ) {
@@ -58,6 +58,7 @@ void vig_check_fail() {
 }
 
 bool vig_run( VcpTask t ) {
+   vigResult = VIG_TASKERR;
    vcp_task_start( t );
    if (( vigResult = vcp_error() )) return false;
    while ( ! vcp_task_wait( t, TICK )) {
@@ -96,7 +97,7 @@ bool vig_init( VcpVulcomp v ) {
    vulimg.pyr = NULL;
    vulimg.white8 = NULL;
    vulimg.dsum = NULL;
-   vulimg.delta8 = NULL;
+   vulimg.add8 = NULL;
    vulimg.rect = NULL;
    vulimg.wcloud8 = NULL;
    vulimg.started = true;
@@ -190,7 +191,7 @@ TASK( copy1, 2, struct VigCopyParams );
 TASK( trans, 2, struct VigTransParams );
 TASK( diff, 3, struct VigDiffParams );
 TASK( dsum, 3, struct VigDSumParams );
-TASK( delta8, 2, struct VigDeltaParams );
+TASK( add8, 2, struct VigAddParams );
 TASK( copy32, 2, struct VigCopyParams );
 TASK( pyr, 2, struct VigPyrParams );
 
@@ -261,7 +262,6 @@ bool vig_image_copy( VigImage src, VigImage dst, VtlRect rect,
    uint32_t nx = DIVC( rect->width * vig_pixel_size( dst->pixel ), 32*UGR );
    VcpTask t = vig_copy_task( & pars, dst->pixel );
    if ( ! t ) return false;
-   vigResult = VIG_TASKERR;
 	VcpStorage ss[2] = { src->stor, dst->stor };
 	vcp_task_setup( t, ss, nx, DIVC( dst->height, UGR ), 1, & pars );
 	return vig_run( t );
@@ -392,24 +392,24 @@ static VcpTask vig_pyr_setup( VigImage src, VigImage dst ) {
 }
 
 
-bool vig_image_pyramid( VigImage src, VigImage dst ) {
+bool vig_pyr_create( VigImage img, VigImage pyr ) {
    if ( ! vig_inited() ) return false;
    vigResult = VIG_PIXELERR;
-   if ( ! vig_pixel_same( src->pixel, dst->pixel )) return false;
-   if ( vig_pixel_signed( src->pixel )) return false;
+   if ( ! vig_pixel_same( img->pixel, pyr->pixel )) return false;
+   if ( vig_pixel_signed( img->pixel )) return false;
    vigResult = VIG_COORDERR;
-   if ( src == dst ) return false;
-   uint32_t w = vig_image_width(src);
-   uint32_t h = vig_image_height(src);
+   if ( img == pyr ) return false;
+   uint32_t w = vig_image_width(img);
+   uint32_t h = vig_image_height(img);
    if ( 2 > w || 2 > h ) return false;
-   if ( w/2 > vig_image_width(dst)) return false;
-   if ( h > vig_image_height(dst)) return false;
+   if ( w/2 > vig_image_width(pyr)) return false;
+   if ( h > vig_image_height(pyr)) return false;
    struct VigPyrParams pars;
-   vig_imgpar( src, & pars.src );
-   vig_imgpar( dst, & pars.dst );
-   uint32_t pxs = vig_pixel_size( dst->pixel );
-   pars.compBits = pxs / vig_pixel_comps( dst->pixel );
-   VcpTask t = vig_pyr_setup( src, dst );
+   vig_imgpar( img, & pars.src );
+   vig_imgpar( pyr, & pars.dst );
+   uint32_t pxs = vig_pixel_size( pyr->pixel );
+   pars.compBits = pxs / vig_pixel_comps( pyr->pixel );
+   VcpTask t = vig_pyr_setup( img, pyr );
    if ( ! t ) return false;
    vigResult = VIG_TASKERR;
 	return vig_run( t );
@@ -468,7 +468,7 @@ void vig_done() {
    vig_done_task( & vulimg.pyr );
    vig_done_task( & vulimg.white8 );
    vig_done_task( & vulimg.dsum );
-   vig_done_task( & vulimg.delta8 );
+   vig_done_task( & vulimg.add8 );
    vig_done_task( & vulimg.wcloud8 );
    vulimg.started = false;
 }
@@ -827,7 +827,7 @@ bool vig_image_avg( VigImage img, VigValue * pix ) {
 }   
 
 
-bool vig_image_delta( VigImage src, VigValue pixel, VigImage dst ) {
+bool vig_image_add( VigImage src, VigValue pixel, VigImage dst ) {
    if ( ! vig_inited() ) return false;
    if ( ! vig_isimage(src)) return false;
    if ( ! vig_isimage(dst)) return false;
@@ -844,7 +844,7 @@ bool vig_image_delta( VigImage src, VigValue pixel, VigImage dst ) {
    vigResult = VIG_COORDERR;
    if ( src->width != dst->width ) return false;
    if ( src->height != dst->height ) return false;
-   struct VigDeltaParams pars = {
+   struct VigAddParams pars = {
 	  .compCount = compCount, 
       .min = sgn ? -128 : 0,
       .max = sgn ? 127 : 255,
@@ -853,7 +853,7 @@ bool vig_image_delta( VigImage src, VigValue pixel, VigImage dst ) {
    vig_imgpar( src, & pars.img );
    pars.img.width *= vig_pixel_comps(dp);
    uint32_t nx = DIVC( pars.img.width, 4*UGR );
-   VcpTask t = vig_delta8();
+   VcpTask t = vig_add8();
    if ( ! t ) return false;
    vigResult = VIG_TASKERR;
    VcpStorage ss[2] = { src->stor, dst->stor };

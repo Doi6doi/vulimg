@@ -4,19 +4,32 @@
 #include <vulcmp.h>
 #include <vultools.h>
  
+/// image x or y coordinate
 typedef uint32_t VigCoord;
 
+/// pixel value (all components)
 typedef uint32_t VigValue;
 
+/// pixel kind
 typedef enum VigPixel { vix_Unknown, vix_1, vix_8, vix_g8, vix_s8, 
    vix_rgb24, vix_ybr24, vix_rgba32, vix_argb32 } VigPixel;
+   
+/// one image plane   
 typedef enum VigPlane { vpl_Unknown, vpl_R, vpl_G, vpl_B, vpl_Y, vpl_Cb, vpl_Cr } VigPlane;
 
+/// gpu stored image
 typedef struct VigImage * VigImage;
 
+/// affine transformation
 typedef struct VigTransform {
    float sx, ry, rx, sy, dx, dy;
 } * VigTransform;
+
+/// part of an image
+typedef struct VigPart {
+   VigImage img;
+   VtlRect rect;
+} * VigPart;
 
 #define VIG_SUCCESS    VCP_SUCCESS
 #define VIG_HOSTMEM    VCP_HOSTMEM
@@ -28,6 +41,8 @@ typedef struct VigTransform {
 #define VIG_TASKERR    -11005
 #define VIG_NOIMG      -11006
 #define VIG_BMPERR     -11008
+
+#define VIG_MUCH -100000
 
 /// vig last error code
 int vig_error();
@@ -68,8 +83,8 @@ bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst );
 bool vig_image_join( VigImage dst, VigImage src, VigPlane plane );
 /// transform image
 bool vig_image_transform( VigImage src, VigImage dst, VigTransform trans );
-/// shift image pixel values
-bool vig_image_delta( VigImage src, VigValue pixel, VigImage dst );
+/// add image pixel values
+bool vig_image_add( VigImage src, VigValue pixel, VigImage dst );
 /// difference of two images
 bool vig_image_diff( VigImage a, VigImage b, VigImage dst );
 /// sum of difference
@@ -77,8 +92,13 @@ bool vig_image_diffsum( VigImage a, VtlRect rect, VigImage b,
    VigCoord bLeft, VigCoord bTop, uint64_t * diff );
 /// average pixel
 bool vig_image_avg( VigImage img, VigValue * pix );
+
 /// create "pyramid" of an image: /2, /4, ... scaled images
-bool vig_image_pyramid( VigImage src, VigImage dst );
+bool vig_pyr_create( VigImage img, VigImage pyr );
+/// calculate delta (move) between two images using their pyramids
+bool vig_pyr_delta( VigImage a, VigImage b, VigImage pyra, VigImage pyrb,
+   VigCoord * dx, VigCoord * dy );
+
 /// get rects of interest
 bool vig_white_rects( VigImage img, float limit, 
    float density, uint32_t minSize, uint32_t maxDist, 
@@ -101,7 +121,6 @@ bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad );
 VigImage vig_bmp_read( void * stream, VtlStreamOp read );
 /// write bmp
 bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write );
-
 
 void vig_drawallrects( VigImage img, uint32_t n );
 void vig_drawallclouds( VigImage img, uint32_t n );

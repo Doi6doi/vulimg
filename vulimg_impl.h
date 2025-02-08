@@ -54,7 +54,7 @@ typedef struct VigVulimg {
    VcpTask pyr;
    VcpTask white8;
    VcpTask dsum;
-   VcpTask delta8;
+   VcpTask add8;
    VcpTask rect;
    VcpTask wcloud8;
 } * VigVulimg;
