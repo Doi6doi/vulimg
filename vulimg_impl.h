@@ -15,8 +15,10 @@
 #define FAIL( fmt, ... ) { DEBUG( fmt, __VA_ARGS__ ); exit(1); }
 #define MIN(x,y) ((x)<(y)?(x):(y))
 #define MAX(x,y) ((x)>(y)?(x):(y))
+#define PSMALL 5
 #define TASK( name, nstor, conf ) \
    static VcpTask vig_##name() { \
+      vigResult = VIG_TASKERR; \
       if ( ! vulimg.name ) { \
 		 vulimg.name = vcp_task_create( vulimg.vulcomp, \
 		    name##_spv, name##_spv_len, "main", nstor, sizeof( conf )); \
@@ -57,6 +59,7 @@ typedef struct VigVulimg {
    VcpTask add8;
    VcpTask rect;
    VcpTask wcloud8;
+   VcpTask delta8;
 } * VigVulimg;
 
 struct VigImage {
@@ -80,5 +83,9 @@ void vig_imgpar( VigImage i, VigImgParam p );
 bool vig_pixel_same( VigPixel a, VigPixel b );
 /// task futtatás
 bool vig_run( VcpTask t );
+/// előjeles pixel
+bool vig_pixel_signed( VigPixel pix );
+/// komponensek száma
+uint32_t vig_pixel_comps( VigPixel pix );
 
 #endif // VULIMG_IMPLH

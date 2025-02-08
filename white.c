@@ -327,7 +327,7 @@ void vig_drawallclouds( VigImage img, uint32_t n ) {
 fprintf( stderr, "x:%d y:%d ", x, y );			  
 //		     vig_cloud_dump( & gr );
            vig_cloud_set( & c, & gc );
-           vig_draw_cloud( img, & c, 0xff );
+//           vig_draw_cloud( img, & c, 0xff );
         }
 	  }
    }

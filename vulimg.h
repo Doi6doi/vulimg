@@ -42,7 +42,7 @@ typedef struct VigPart {
 #define VIG_NOIMG      -11006
 #define VIG_BMPERR     -11008
 
-#define VIG_MUCH -100000
+#define VIG_MUCH 10000000
 
 /// vig last error code
 int vig_error();
@@ -97,7 +97,7 @@ bool vig_image_avg( VigImage img, VigValue * pix );
 bool vig_pyr_create( VigImage img, VigImage pyr );
 /// calculate delta (move) between two images using their pyramids
 bool vig_pyr_delta( VigImage a, VigImage b, VigImage pyra, VigImage pyrb,
-   VigCoord * dx, VigCoord * dy );
+   float limit, int32_t * dx, int32_t * dy );
 
 /// get rects of interest
 bool vig_white_rects( VigImage img, float limit, 

@@ -178,7 +178,7 @@ void flush( bool all ) {
       write( data.out, i );
    }
 }
-/*
+
 
 
 /// rész simitíása
@@ -210,9 +210,11 @@ void smooth() {
       } else {
          s->ex += d->dx;
          s->ey += d->dy;
+      }
    }
    smooth_update( &start, 0 );
 }
+
 
 /// grögetés
 void roll() {
@@ -234,7 +236,7 @@ void roll() {
 VigImage next( FrameData d ) {
    vig_pyr_create( d->imgs[0], d->pyrs[0] );
    vig_pyr_delta( d->imgs[0], d->pyrs[0], d->imgs[1], d->pyrs[1],
-      &d->ds[0].dx, &d->ds[0].dy );
+      0.1, &d->ds[0].dx, &d->ds[0].dy );
    smooth();
    flush(false);
    roll();
@@ -262,7 +264,5 @@ int main( int argc, char ** argv ) {
    done();
    return 0;
 }
-*/
-
 
 

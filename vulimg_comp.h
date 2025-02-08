@@ -140,6 +140,12 @@ struct VigRectParams {
    UINT pixVal;
 };
    
+struct VigDeltaParams {
+   STRUCT VigImgParam img;
+   UINT comps;
+   UINT top;
+};
+
 
 #ifndef VULKAN
 #pragma pack(pop)
