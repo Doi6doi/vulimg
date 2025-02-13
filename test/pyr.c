@@ -4,43 +4,51 @@
 #include <stdio.h>
 #include "frameproc.h"
 
-typedef struct Pyr {
-   struct FrameProc fp;
+struct FrameData {
+   VigImage frame;
    VigImage pyr;
-} * Pyr;
+} data;
 
-/// következő képkocka
-VigImage next( Pyr p ) {
-   if ( ! vig_image_pyramid( p->fp.frame, p->pyr ) ) {
-      vtl_die("Could not create frame");
-   }
-   return p->pyr;
+VigImage * frame( FrameData d );
+bool arg( FrameData d, int argc, char ** argv, int * at );
+VigImage next( FrameData d );
+
+struct FrameProc proc = { .frame = frame, 
+  .arg = vfp_arg, .next = next };
+
+VigImage * frame( FrameData d ) {
+   return &d->frame;
 }
 
-void init( Pyr p, int argc, char ** argv ) {
-   vfp_init( "pyr", VCP_VALIDATION, & p->fp, argc, argv, vfp_next_arg );
-   VigImage f = p->fp.frame;
-   uint32_t w = vig_image_width( f );
-   uint32_t h = vig_image_height( f );
-   VigPixel x = vig_image_pixel( f );
-   p->pyr = vig_image_create( w/2, h, x );
-   if ( ! ( p->pyr ))
-      vtl_die("Could not create image");
+/// következő képkocka
+VigImage next( FrameData d ) {
+   if ( ! vig_pyr_create( d->frame, d->pyr ) ) {
+      vtl_die("Could not create frame");
+   }
+   return d->pyr;
+}
+
+void init( int argc, char ** argv ) {
+   vfp_init( "pyr", VCP_VALIDATION, & data, & proc, argc, argv );
+   uint32_t w = vig_image_width( data.frame );
+   uint32_t h = vig_image_height( data.frame );
+   VigPixel x = vig_image_pixel( data.frame );
+   data.pyr = vig_image_create( w/2, h, x );
+   vig_check_fail();
 }
 
 /// memória felszabadítás
-int done( Pyr p ) {
-   vig_image_free( p->pyr );
-   vfp_done( & p->fp );
-   return 0;
+void done() {
+   vig_image_free( data.pyr );
+   vfp_done( & data, & proc );
 }
 
 /// paraméterek értelmezése és bemenet feldolgozása
 int main( int argc, char ** argv ) {
-   struct Pyr p;
-   init( & p, argc, argv );
-   vfp_process( & p.fp, (vfp_next_proc)next );
-   return done( & p );
+   init( argc, argv );
+   vfp_process( & data, & proc );
+   done();
+   return 0;
 }
 
 

@@ -45,6 +45,7 @@ bool arg( FrameData d, int argc, char ** argv, int * at ) {
    VcpStr s = argv[(*at)++];
    if ( vtl_same( s, "-n" ))
       return vfp_nat_arg( argc, argv, at, & d->count );
+   --*at;
    return vfp_arg( d, argc, argv, at );
 }
 
@@ -67,7 +68,6 @@ void init( int argc, char ** argv ) {
       vig_check_fail();
    }
 }
-
 
 VigCoord width() {
    return vig_image_width( data.out );
@@ -235,12 +235,13 @@ void roll() {
 /// új képkocka feldolgozása
 VigImage next( FrameData d ) {
    vig_pyr_create( d->imgs[0], d->pyrs[0] );
-   vig_pyr_delta( d->imgs[0], d->pyrs[0], d->imgs[1], d->pyrs[1],
-      0.1, &d->ds[0].dx, &d->ds[0].dy );
+   vig_pyr_delta( d->imgs[0], d->imgs[1], d->pyrs[0], d->pyrs[1],
+      0.2, &d->ds[0].dx, &d->ds[0].dy );
+fprintf( stderr, "dellta: %d %d\n\n", d->ds[0].dx, d->ds[0].dy );
    smooth();
    flush(false);
    roll();
-   return NULL;
+   return d->pyrs[0];
 }
 
 /// befejezés

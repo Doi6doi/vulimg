@@ -6,11 +6,13 @@ TEMPS=smiley.raw smiley2.bmp
 FFMPEG=ffmpeg
 FFPLAY=ffplay
 
-IN=car.mp4
-WIDTH=1920
-HEIGHT=1080
-OWIDTH=960
-OHEIGHT=1080
+IN=shk.mkv
+WIDTH=1280
+HEIGHT=720
+# WIDTH=1920
+# HEIGHT=1080
+OWIDTH=1280
+OHEIGHT=720
 FPIX=gray8
 VPIX=g8
 
@@ -64,8 +66,16 @@ deshake.elf: deshake.c frameproc.c
 
 deshake.run: deshake.elf
 	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
-        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX)\
-	| $(FFPLAY) - -f rawvideo -video_size $(OWIDTH)x$(OHEIGHT) -pixel_format $(FPIX)
+        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) -n 10 \
+	| $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
+
+#	| $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) -n 10 \
+
+#	cat shk.raw \
+
+#	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
+#       | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX)\
+#	| $(FFPLAY) - -f rawvideo -video_size $(OWIDTH)x$(OHEIGHT) -pixel_format $(FPIX)
 
 pyr.elf: pyr.c frameproc.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)

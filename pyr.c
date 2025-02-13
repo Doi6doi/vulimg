@@ -30,7 +30,7 @@ static int vig_dy( VigDir i ) {
 
 /// piramis lépések száma
 static int vig_pyr_count( VigImage a ) {
-   int d = MAX( vig_image_width(a), vig_image_height(a) );
+   int d = MIN( vig_image_width(a), vig_image_height(a) );
    int ret = 0;
    while ( 1 < d ) {
       ++ret;
@@ -58,9 +58,14 @@ static bool vig_pyr_delta_best( uint32_t * sum,
    sum[best] = VIG_MUCH;
    for (int j=1; j<=9; ++j) {
       uint32_t jv = sum[j];
-      if ( sum[best] > jv && limit > jv )
+      
+      if ( limit>=jv && 
+         (sum[best] > jv
+         || (sum[best] == jv && 5 == j ))
+      )
          best = j;
    }
+fprintf( stderr, "b:%d bv:%d\n", best, sum[best] );
    if (0 == best) {
       *dx = *dy = VIG_MUCH;
       return false;
@@ -71,25 +76,49 @@ static bool vig_pyr_delta_best( uint32_t * sum,
    }
 }   
 
+void vig_dumpdimg( uint8_t * p, VigDeltaParams pars ) {
+   uint32_t t = pars->img.stride * 4;
+   for (int r=0; r<pars->img.height; ++r) {
+      for (int c=0; c<pars->img.width; ++c) {
+         int x = p[(r+pars->top)*t + c];
+         fprintf( stderr, "%d", x * 9  / 255 );
+      }
+      fprintf( stderr, "\n" );
+   }
+   fprintf( stderr, "\n" );
+}
+   
+      
+
 
 /// piramis összehasonlító lépés cpu-val
-static bool vig_pyr_delta_cpu( int i, int n, VigImage a,
+void vig_pyr_delta_cpu( int i, int n, VigImage a,
    VigImage pa, VigImage pb, VigDeltaParams pars, 
    float limit, int32_t * dx, int32_t * dy )
 {
+   if ( 3 >= pars->img.height || 3 >= pars->img.width ) {
+      *dx = *dy = 0;
+      return;
+   }
    int m = pars->comps;
    int t = pars->img.stride * 4;
    uint32_t lim = round( limit * 255
       * pars->img.width * pars->img.height * m );
+fprintf( stderr, "\nVPDC lim:%d w:%d h:%d t:%d m:%d\n", 
+lim, pars->img.width, pars->img.height, pars->top, m );         
    uint32_t sums[10];
    for (VigDir d=0; d<=9; ++d)
       sums[d] = VIG_MUCH;
-   int best = 0;
    uint8_t * qa = vig_image_address(pa);
    uint8_t * qb = vig_image_address(pb);
+fprintf( stderr, "qa:%p qb:%p\n", qa, qb );         
    for (VigDir d=1; d<=9; ++d) {
       uint32_t sum = 0;
-      int r = 7<=d ? 1 : 0; 
+      int r = pars->top + (7<=d ? 1 : 0); 
+if ( 10 > pars->img.height && 1 == d) {
+vig_dumpdimg( qa, pars );
+vig_dumpdimg( qb, pars );
+}
       int ru = r + pars->img.height-1;
       for ( ; r < ru; ++r ) {
          int c = (1==d||4==d||7==d) ? m : 0;
@@ -104,10 +133,11 @@ static bool vig_pyr_delta_cpu( int i, int n, VigImage a,
          if ( lim < sum ) break;
       }
       sums[d] = sum;
-      if ( sums[best] > sum ) 
-         best = d;
+      if ( lim > sum )
+         lim = sum;
    }
-   return vig_pyr_delta_best( sums, lim, dx, dy );
+   vig_pyr_delta_best( sums, lim, dx, dy );
+   return;
 }
 
 
@@ -141,11 +171,15 @@ static bool vig_pyr_delta_step( int i, int n, VigImage a,
       w /=2;
       h /=2;
    }
-   pars.comps = vig_pixel_size( a->pixel );
+fprintf( stderr, "\nvpds i:%d w:%d h:%d y:%d\n", i, w, h, y );
+   pars.comps = vig_pixel_size( a->pixel )/8;
    pars.img.width = w;
    pars.img.height = h;
-   if ( i < PSMALL )
-      return vig_pyr_delta_cpu( i, n, a, pa, pb, &pars, limit, dx, dy );
+   pars.top = y;
+//   if ( i < PSMALL ) {
+      vig_pyr_delta_cpu( i, n, a, pa, pb, &pars, limit, dx, dy );
+      return true;
+//   }
    if ( ! vig_temp_grow( 10*h*4 )) return false;
    VcpTask t = vig_delta8();
    if ( ! t ) return false;
@@ -153,7 +187,7 @@ static bool vig_pyr_delta_step( int i, int n, VigImage a,
    vcp_task_setup( t, ss, 1, DIVC( h, UGR ), 1, &pars );
    if ( ! vig_run( t )) return false;
    vig_pyr_delta_bests( h, limit*pars.comps*w, dx, dy );
-   return false;
+   return true;
 }
 
 
