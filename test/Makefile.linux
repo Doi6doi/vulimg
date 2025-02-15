@@ -1,5 +1,5 @@
 #TESTS=basic mini diff pyr rects foltok
-TESTS=deshake
+TESTS=delt
 # TESTS=foltok
 TEMPS=smiley.raw smiley2.bmp
 
@@ -68,6 +68,12 @@ deshake.run: deshake.elf
 	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
         | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) -n 10 \
 	| $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
+
+delt.elf: delt.c
+	$(CC) $(CFL) -o $@ $^ $(LFL)
+
+delt.run: delt.elf
+	$(RFL) ./$<
 
 #	| $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) -n 10 \
 

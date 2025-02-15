@@ -42,9 +42,11 @@ static int vig_pyr_count( VigImage a ) {
 // méretek és pixel ellenőrzése
 static bool vig_pyr_delta_check( VigImage a, VigImage b, bool pyr ) {
    vigResult = VIG_PIXELERR;
+vtl_ewrite("hello %d %d", a->pixel, b->pixel );
    if ( ! vig_pixel_same( a->pixel, b->pixel ) ) return false;
    if ( vig_pixel_signed( b->pixel )) return false;
    vigResult = VIG_COORDERR;
+vtl_ewrite("hello2 %d %d", vig_image_width(a), vig_image_height(b) );
    if ( vig_image_width(a) / (pyr?2:1) != vig_image_width(b)) return false;
    if ( vig_image_height(a) != vig_image_height(b)) return false;
    return true;
@@ -237,7 +239,7 @@ static VcpTask vig_pyr_setup( VigImage src, VigImage dst ) {
    if ( ! ret ) return NULL;
    vcp_task_setup( ret, ss, 0, 0, 0, NULL );
    VcpPart prs = vcp_task_parts( ret, n );
-   vcp_check_fail();   
+   if ( ! prs ) return false;
    uint32_t row = 0;
    for ( int i=0; i<n; ++i ) {
       VigPyrParams py = vulimg.pyrs+i;
@@ -248,12 +250,14 @@ static VcpTask vig_pyr_setup( VigImage src, VigImage dst ) {
       py->height = (nrows /= 2);
       py->width = (ncols /= 2); 
       py->row = row;
+vtl_ewrite( "cb:%d cc:%d h:%d w:%d r:%d", compBits, compCount, py->height, py->width, py->row );
       row += nrows;
       VcpPart pr = prs+i;
       pr->countX = DIVC( ncols * ps, 32*UGR );
       pr->countY = DIVC( nrows, UGR );
       pr->countZ = 1;
       pr->constants = py;
+vtl_ewrite( "cx:%d cy:%d cz:%d c:%p", pr->countX, pr->countY, pr->countZ, py );      
    }
    vigResult = VIG_SUCCESS;
    return ret;
@@ -279,6 +283,5 @@ bool vig_pyr_create( VigImage img, VigImage pyr ) {
    pars.compBits = pxs / vig_pixel_comps( pyr->pixel );
    VcpTask t = vig_pyr_setup( img, pyr );
    if ( ! t ) return false;
-   vigResult = VIG_TASKERR;
 	return vig_run( t );
 }

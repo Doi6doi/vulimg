@@ -58,7 +58,7 @@ void vig_check_fail() {
 
 bool vig_run( VcpTask t ) {
    vigResult = VIG_TASKERR;
-fprintf( stderr, "buu7 %p\n", t );   
+fprintf( stderr, "buu7 %p \n", t );   
    vcp_task_start( t );
    if (( vigResult = vcp_error() )) return false;
    while ( ! vcp_task_wait( t, TICK )) {
