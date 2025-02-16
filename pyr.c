@@ -72,18 +72,19 @@ fprintf( stderr, "b:%d bv:%d\n", best, sum[best] );
       *dx = *dy = VIG_MUCH;
       return false;
    } else {
-      *dx = 2 * *dx + vig_dx( best );
-      *dy = 2 * *dy + vig_dy( best );
+      *dx += vig_dx( best );
+      *dy += vig_dy( best );
       return true;
    }
 }   
 
 void vig_dumpdimg( uint8_t * p, VigDeltaParams pars ) {
+vtl_ewrite("dumpdimg %d %d %d %d", pars->img.width, pars->img.height, pars->top, pars->comps );
    uint32_t t = pars->img.stride * 4;
    for (int r=0; r<pars->img.height; ++r) {
-      for (int c=0; c<pars->img.width; ++c) {
+      for (int c=0; c<pars->img.width * pars->comps; ++c) {
          int x = p[(r+pars->top)*t + c];
-         fprintf( stderr, "%d", x * 9  / 255 );
+         fprintf( stderr, "%x", x * 15  / 255 );
       }
       fprintf( stderr, "\n" );
    }
@@ -98,10 +99,8 @@ void vig_pyr_delta_cpu( int i, int n, VigImage a,
    VigImage pa, VigImage pb, VigDeltaParams pars, 
    float limit, int32_t * dx, int32_t * dy )
 {
-   if ( 3 >= pars->img.height || 3 >= pars->img.width ) {
-      *dx = *dy = 0;
-      return;
-   }
+   *dx *= 2;
+   *dy *= 2;
    int m = pars->comps;
    int t = pars->img.stride * 4;
    uint32_t lim = round( limit * 255
@@ -109,31 +108,41 @@ void vig_pyr_delta_cpu( int i, int n, VigImage a,
 fprintf( stderr, "\nVPDC lim:%d w:%d h:%d t:%d m:%d\n", 
 lim, pars->img.width, pars->img.height, pars->top, m );         
    uint32_t sums[10];
-   for (VigDir d=0; d<=9; ++d)
-      sums[d] = VIG_MUCH;
    uint8_t * qa = vig_image_address(pa);
    uint8_t * qb = vig_image_address(pb);
-fprintf( stderr, "qa:%p qb:%p\n", qa, qb );         
+   uint32_t cw = pars->img.width-abs(*dx)-1;
+   uint32_t ch = pars->img.height-abs(*dy)-1;
+   for (VigDir d=0; d<=9; ++d)
+      sums[d] = VIG_MUCH;
+fprintf( stderr, "qa:%p qb:%p cw:%d ch:%d\n", qa, qb, cw, ch );         
    for (VigDir d=1; d<=9; ++d) {
       uint32_t sum = 0;
-      int r = pars->top + (7<=d ? 1 : 0); 
-if ( 10 > pars->img.height && 1 == d) {
+      int32_t ddx = *dx + vig_dx(d);
+      int32_t ddy = *dy + vig_dy(d);
+      int r = MAX( 0, -ddy );
+if ( 100 > pars->img.height && 1 == d) {
 vig_dumpdimg( qa, pars );
 vig_dumpdimg( qb, pars );
 }
-      int ru = r + pars->img.height-1;
+      int ru = r + ch;
       for ( ; r < ru; ++r ) {
-         int c = (1==d||4==d||7==d) ? m : 0;
-         int cu = c + (pars->img.width-1)*m;
-         uint8_t *ra = qa + t*r + c;
-         uint8_t *rb = qb + t*r + t*vig_dy(d) + c + vig_dx(d)*m;
+         uint32_t rsum = 0;
+         int c = MAX( 0, -ddx );
+         int cu = c + cw*m;
+         uint8_t *ra = qa + t*(r+pars->top) + c*m;
+         uint8_t *rb = qb + t*(r+pars->top+ddy) + (c+ddx)*m;
+vtl_ewrite("ra:%p rb:%p c:%d cu:%d", ra, rb, c, cu );
          for ( ; c < cu; ++c ) {
-            sum += abs( (int)*ra - (int)*rb );
+// vtl_ewrite("qa:%p qb:%p ra:%p=%d rb:%p=%d", qa, qb, ra, *ra, rb, *rb );
+            rsum += abs( (int)*ra - (int)*rb );
             ++ra;
             ++rb;
          }
+         sum += rsum;
+vtl_ewrite("r:%d ddx:%d ddy:%d rsum:%d", r, ddx, ddy, rsum);         
          if ( lim < sum ) break;
       }
+vtl_ewrite("d:%d sum:%d", d, sum );
       sums[d] = sum;
       if ( lim > sum )
          lim = sum;
@@ -173,7 +182,11 @@ static bool vig_pyr_delta_step( int i, int n, VigImage a,
       w /=2;
       h /=2;
    }
-fprintf( stderr, "\nvpds i:%d w:%d h:%d y:%d\n", i, w, h, y );
+   if ( n == i ) 
+      y = 0;
+   if ( 2 >= w || 2 >= h )
+      return true;
+fprintf( stderr, "\nvpds i:%d n:%d w:%d h:%d y:%d dx:%d dy:%d\n", i, n, w, h, y, *dx, *dy );
    pars.comps = vig_pixel_size( a->pixel )/8;
    pars.img.width = w;
    pars.img.height = h;

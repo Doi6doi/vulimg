@@ -21,7 +21,7 @@ uint calcComp( int xPix, int y, int iComp ) {
    int x2Comp = x2*p.compCount+iComp;
    int x2Bit = x2Comp * p.compBits;
    int m1 = x2Bit % 32;
-   int m2 = m1 + p.compBits*p.compCount % 32;
+   int m2 = (m1 + p.compBits*p.compCount) % 32;
    if (0 == p.row) {
       uint si = y*2*p.src.stride + x2Bit / 32;
       uint v = bitfieldExtract( source[si], m1, p.compBits )
@@ -58,7 +58,8 @@ void main() {
       uint v = calcComp( xPix, int(y), iComp );
       ret = bitfieldInsert( ret, v, i, p.compBits );
       if ( ++iComp == p.compCount ) {
-         ++xPix;
+         if ( p.width <= ++xPix )
+            break;
          iComp = 0;
       }
    }
