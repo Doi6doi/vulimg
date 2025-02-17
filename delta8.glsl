@@ -19,6 +19,7 @@ layout (binding = 1 ) writeonly buffer Dest {
    uint dest[];
 };
 
+uint d, s;
 uint ai, bi, av, bv;
 int ab, bb;
 
@@ -46,6 +47,10 @@ void incb() {
 
 /// a mutató növelése n-szer
 void incas(uint n) {
+   if ( 4 <= n ) {
+      ai += n/4;
+      n = n & 3;
+   }
    while (0 != n) {
       inca();
       --n;
@@ -54,41 +59,58 @@ void incas(uint n) {
 
 /// b mutató növelése n-szer
 void incbs(uint n) {
+   if ( 4 <= n ) {
+      bi += n/4;
+      n = n & 3;
+   }
    while (0 != n) {
       incb();
       --n;
    }
 }
 
+void usedx() {
+   int dx = p.dx;
+   switch (d) {
+      case 1: case 4: case 7: --dx;
+      case 3: case 6: case 9: ++dx;
+   }
+   if ( 0 < dx )
+      incbs( uint( dx*p.comps ) );
+   else if ( 0 > dx )
+      incas( uint( -dx*p.comps ) );
+}
+   
+void usedy() {
+   int dy = p.dy;
+   switch (d) {
+      case 1: case 2: case 3: ++dy;
+      case 7: case 8: case 9: --dy;
+   }
+   if ( 0 < dy )
+      bi += uint( dy*s );
+   else if ( 0 > dy )
+      ai += uint( -dy*s );
+}
+   
+
 void main() {
    uint y = gl_GlobalInvocationID.x;
-   if (p.img.height <= y) return;
-   uint x = gl_GlobalInvocationID.x+1;
-   dest[ y*10 + x ] = 0;
-   switch (x) {
-      case 1: case 2: case 3: case 4: case 5: case 6:
-         if (p.img.height == y+1) return; 
-      break;
-      case 7: case 8: case 9: if (0 == y) return;
+   uint h = p.img.height - abs(p.dy) - 1;
+   if ( p.img.height <= y ) return;
+   d = gl_GlobalInvocationID.x + 1;
+   if ( h <= y ) {
+      dest[ y*10 + d ] = 0;
+      return;
    }
-   uint c = p.comps;
-   uint s = p.img.stride;
-   uint n = (p.img.width-1) * c;
+   s = p.img.stride;
+   uint n = p.comps*(p.img.width - abs(p.dx) - 1);
    ai = bi = (y+p.top)*s;
    ab = bb = 0;
+   usedx();
+   usedy();
    av = a[ai];
    bv = b[bi];
-   switch (x) {
-      case 1: incas(c); bi += s; break;
-      case 2: bi += s; break;
-      case 3: bi += s; incbs(c); break;
-      case 4: incas(c); break;
-      case 5: break;
-      case 6: incbs(c); break;
-      case 7: incas(c); bi -= s; break;
-      case 8: bi -= s; break;
-      case 9: incbs(c); bi -= s; break; 
-   }
    uint sum = 0;
    while (0!=n) {
       uint aw = bitfieldExtract( av, ab, 8 );
@@ -98,6 +120,6 @@ void main() {
       incb();
       --n;
    }
-   dest[ y*10 + x ] = sum;
+   dest[ y*10 + d ] = sum;
 }
    

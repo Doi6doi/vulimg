@@ -42,7 +42,7 @@ typedef struct VigPart {
 #define VIG_NOIMG      -11006
 #define VIG_BMPERR     -11008
 
-#define VIG_MUCH 10000000
+#define VIG_MUCH 1000000000
 
 /// vig last error code
 int vig_error();

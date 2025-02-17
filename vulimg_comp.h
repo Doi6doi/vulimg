@@ -144,6 +144,8 @@ struct VigDeltaParams {
    STRUCT VigImgParam img;
    UINT comps;
    UINT top;
+   INT dx;
+   INT dy;
 };
 
 
