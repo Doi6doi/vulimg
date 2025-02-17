@@ -241,7 +241,8 @@ fprintf( stderr, "dellta: %d %d\n\n", d->ds[0].dx, d->ds[0].dy );
    smooth();
    flush(false);
    roll();
-   return d->pyrs[0];
+   return d->out;
+//   return d->pyrs[0];
 }
 
 /// befejezés
