@@ -70,10 +70,10 @@ void incbs(uint n) {
 }
 
 void usedx() {
-   int dx = p.dx;
+   int dx = int(p.dx);
    switch (d) {
-      case 1: case 4: case 7: --dx;
-      case 3: case 6: case 9: ++dx;
+      case 1: case 4: case 7: --dx; break;
+      case 3: case 6: case 9: ++dx; break;
    }
    if ( 0 < dx )
       incbs( uint( dx*p.comps ) );
@@ -82,10 +82,10 @@ void usedx() {
 }
    
 void usedy() {
-   int dy = p.dy;
+   int dy = int(p.dy);
    switch (d) {
-      case 1: case 2: case 3: ++dy;
-      case 7: case 8: case 9: --dy;
+      case 1: case 2: case 3: ++dy; break;
+      case 7: case 8: case 9: --dy; break;
    }
    if ( 0 < dy )
       bi += uint( dy*s );
@@ -95,7 +95,7 @@ void usedy() {
    
 
 void main() {
-   uint y = gl_GlobalInvocationID.x;
+   uint y = gl_GlobalInvocationID.y;
    uint h = p.img.height - abs(p.dy) - 1;
    if ( p.img.height <= y ) return;
    d = gl_GlobalInvocationID.x + 1;

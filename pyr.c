@@ -97,8 +97,6 @@ void vig_pyr_delta_cpu( int i, int n, VigImage a,
    VigImage pa, VigImage pb, VigDeltaParams pars, 
    uint32_t lim )
 {
-   pars->dx *= 2;
-   pars->dy *= 2;
    int m = pars->comps;
    int t = pars->img.stride * 4;
 // fprintf( stderr, "\nVPDC lim:%d w:%d h:%d t:%d m:%d\n", 
@@ -154,14 +152,16 @@ static bool vig_pyr_delta_bests( VigDeltaParams p, float wclimit ) {
    for (int j=1; j<=9; ++j)
       sum[j] = 0;
    uint32_t * sums = vcp_storage_address( vulimg.temp );
-vtl_ewrite("s0:%d", sums[0] );
    uint32_t h = p->img.height;
    for (int i=0; i<h; ++i) {
-      for (int j=1; j<=9; ++j)
+      for (int j=1; j<=9; ++j) {
+// vtl_ewrite( "i:%d j:%d s:%d", i,j, sums[10*i+j] );
          sum[j] += sums[ 10*i+j ];
+      }
    }
-   for (int j=1; j<=9; ++j)
+/*   for (int j=1; j<=9; ++j)
       vtl_ewrite( "d:%d sum:%d", j, sum[j] );
+      */
    return vig_pyr_delta_best( sum, h*255*wclimit, &p->dx, &p->dy );
 }
 
@@ -188,8 +188,11 @@ static bool vig_pyr_delta_step( int i, int n, VigImage a,
    pars->img.width = w;
    pars->img.height = h;
    pars->top = y;
+   pars->dx *= 2;
+   pars->dy *= 2;
    uint32_t lim = round( limit * 255 *w *h * pars->comps );
    if ( i < PSMALL ) {
+//   if ( i < 100 ) {
       vig_pyr_delta_cpu( i, n, a, pa, pb, pars, lim );
 vtl_ewrite("dstep dx:%d dy:%d", pars->dx, pars->dy );
       return true;
@@ -200,7 +203,6 @@ vtl_ewrite("dstep dx:%d dy:%d", pars->dx, pars->dy );
    VcpStorage ss[3] = { pa->stor, pb->stor, vulimg.temp };
    vcp_task_setup( t, ss, 1, DIVC( h, UGR ), 1, pars );
    if ( ! vig_run( t )) return false;
-vtl_ewrite("buu3 %d", vcp_error() );
    vig_pyr_delta_bests( pars, lim );
    return true;
 }
