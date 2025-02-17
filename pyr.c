@@ -6,7 +6,7 @@
 #include <math.h>
 
 TASK( pyr, 2, struct VigPyrParams );
-TASK( delta8, 2, struct VigDeltaParams );
+TASK( delta8, 3, struct VigDeltaParams );
 
 typedef int VigDir;
 
@@ -154,6 +154,7 @@ static bool vig_pyr_delta_bests( VigDeltaParams p, float wclimit ) {
    for (int j=1; j<=9; ++j)
       sum[j] = 0;
    uint32_t * sums = vcp_storage_address( vulimg.temp );
+vtl_ewrite("s0:%d", sums[0] );
    uint32_t h = p->img.height;
    for (int i=0; i<h; ++i) {
       for (int j=1; j<=9; ++j)
@@ -196,10 +197,10 @@ vtl_ewrite("dstep dx:%d dy:%d", pars->dx, pars->dy );
    if ( ! vig_temp_grow( 10*h*4 )) return false;
    VcpTask t = vig_delta8();
    if ( ! t ) return false;
-   VcpStorage ss[2] = { pa->stor, pb->stor };
-   vcp_task_setup( t, ss, 1, DIVC( h, UGR ), 1, &pars );
+   VcpStorage ss[3] = { pa->stor, pb->stor, vulimg.temp };
+   vcp_task_setup( t, ss, 1, DIVC( h, UGR ), 1, pars );
    if ( ! vig_run( t )) return false;
-vtl_ewrite("buu3");
+vtl_ewrite("buu3 %d", vcp_error() );
    vig_pyr_delta_bests( pars, lim );
    return true;
 }

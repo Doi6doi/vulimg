@@ -15,7 +15,7 @@ layout (binding = 1 ) readonly buffer B {
    uint b[];
 };
 
-layout (binding = 1 ) writeonly buffer Dest {
+layout (binding = 2 ) writeonly buffer Dest {
    uint dest[];
 };
 
@@ -104,7 +104,7 @@ void main() {
       return;
    }
    s = p.img.stride;
-   uint n = p.comps*(p.img.width - abs(p.dx) - 1);
+   uint n = p.comps*uint(p.img.width - abs(p.dx) - 1);
    ai = bi = (y+p.top)*s;
    ab = bb = 0;
    usedx();
