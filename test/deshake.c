@@ -9,7 +9,7 @@ typedef enum Kind { NONE, DELTA, MUCH, WROTE } Kind;
 
 typedef struct Delta {
    Kind kind;
-   int32_t dx, dy, ex, ey;
+   int32_t dx, dy;
 } * Delta;
 
 struct FrameData {
@@ -44,7 +44,7 @@ VigImage * frame( FrameData d ) {
 /// egy delta kiírása
 void dumpd( int i ) {
    Delta d = data.ds+i;
-   vtl_ewrite( "%d: %d %d,%d %d,%d", i, d->kind, d->dx, d->dy, d->ex, d->ey );
+   vtl_ewrite( "%d: %d %d,%d", i, d->kind, d->dx, d->dy );
 }
 
 /// ds-ek kiírása
@@ -92,163 +92,111 @@ VigCoord height() {
    return vig_image_height( data.out );
 }
 
-
-/// vízszintes rész másolása
-void compose_horz( Delta d ) {
-   if ( 0 == d->ey ) return;
-   VigCoord x = abs(d->ex);
-   VigCoord y = abs(d->ey);
-   struct VtlRect r = { .left = 0, .top = 0, 
-      .width = width()-x, .height = y };
-   if ( 0 < d->ex ) {
-      r.left = x;
-      x = 0;
+/// kép összeállítása
+void compose( int i, int u ) {
+   // összegzett elmozdulás
+   int sx=0, sy=0;
+   for (int j=i; u<=j; --j) {
+      sx += data.ds[j].dx;
+      sy += data.ds[j].dy;
    }
-   if ( 0 < d->ey ) {
-      r.top = y;
-      y = 0;
-   } else {
-      r.top = height()-2*y;
-      y = height()-y;
+   int ex = sx / (i-u);
+   int ey = sy / (i-u);
+vtl_ewrite("ex:%d ey:%d", ex, ey );   
+   Delta di = data.ds+i;
+   if ( 0 == ex && 0 == ey ) {
+      vig_image_copy( data.imgs[i], data.out );
+      return;
    }
-   vig_image_copy_part( data.prev, data.out, &r, x, y );
-}
-
-/// függőleges rész másolása
-void compose_vert( Delta d ) {
-   if ( 0 == d->ex ) return;
-   VigCoord ax = abs(d->ex);
-   VigCoord ay = abs(d->ey);
-   struct VtlRect r = { .left = 0, .top = 0, 
-      .width = ax, .height = height()-ay };
-   if ( 0 < d->ex ) {
-      r.left = ax;
-      ax = 0;
-   } else {
-      r.left = width()-ax;
-      ax = width()-ax;
-   }
-   if ( 0 < d->ey ) {
-      r.top = height()-ay;
-   } else {
-      r.top = ay;
-      ay = 0;
-   }
-   vig_image_copy_part( data.prev, data.out, &r, ax, ay );
-}
-
-/// új kép másolása
-void compose_new( Delta d, int i ) {
-   VigCoord ax = abs(d->ex);
-   VigCoord ay = abs(d->ey);
+   int fx = di->dx - ex;
+   int fy = di->dy - ey;
+   int bx = abs(ex);
+   int by = abs(ey);
+   int ax = abs(fx);
+   int ay = abs(fy);
+   // új kép
    struct VtlRect r = { .left = 0, .top = 0, 
       .width = width()-ax, .height = height()-ay };
-   if ( 0 > d->ex ) {
+   struct VtlRect q = { .left = bx, .top = by, 
+      .width = bx, .height = height()-by };
+   int cx = 0, cy = 0;
+   if ( 0 < fx ) {
       r.left = ax;
       ax = 0;
+      q.left = 0;
+      cx = bx;
    }
-   if ( 0 > d->ey ) {
+   if ( 0 < fy ) {
       r.top = ay;
       ay = 0;
+      q.top = 0;
+      cy = by;
    }
-// vtl_ewrite( "compose_new %d,%d:%d,%d %d,%d", r.left, r.top, r.width, r.height, ax, ay );
    vig_image_copy_part( data.imgs[i], data.out, &r, ax, ay );
-   
-}
-
-/// kép készítése az előzőből és az újból
-void compose( int i ) {
-   Delta d = data.ds+i;
-   d->ex = d->dx - d->ex;
-   d->ey = d->dy - d->ey;
-//   compose_horz( d );
-   compose_vert( d );
-   compose_new( d, i );
+   // előző kocka függőleges rész
+   vig_image_copy_part( data.prev, data.out, &q, cx, cy );
+   // előző kocka vízszintes rész
+   r.width = width()-bx;
+   r.height = by;
+   vig_image_copy_part( data.prev, data.out, &q, cx, cy );
    if ( 0 < i ) {
-      data.ds[i-1].dx += d->ex;
-      data.ds[i-1].dy += d->ey;
+      data.ds[i-1].dx += fx;
+      data.ds[i-1].dy += fy;
    }
-   vig_check_fail();
+}   
+
+/// két kép csere
+void swap( VigImage * a, VigImage * b ) {
+   VigImage c = *a;
+   *a = *b;
+   *b = c;
 }
 
-/// kép kiírása
-void write( int i ) {
+/// egy kiírása
+void flushOne( int i, int u ) {
+   Kind k = data.ds[i].kind;
+   if ( NONE == k || WROTE == k )
+      return;
+   if ( i == u || MUCH == k )
+      vig_image_copy( data.imgs[i], data.out );
+   else
+      compose(i,u);
    vig_raw_write( data.out, stdout, vtl_fwrite, false );
-   VigImage save = data.prev;
-   data.prev = data.out;
-   data.out = save;
+   swap( &data.out, &data.prev );
    data.ds[i].kind = WROTE;
 }
 
-/// megkeresni, ameddig ki lehet írni
-int find_flush( bool all ) {
-   // a végén mindet
-   if ( all ) return 0;
-   // az utolsó ugrásig
-   for (int i=0; i<data.count; ++i) {
-      if ( MUCH == data.ds[i].kind )
-         return i;
+
+/// összes kép kiírása i-ig bezárólag
+void flushTill( int i ) {
+   int start = 0;
+   // első kiírandó megkeresése
+   for (int j = data.count-1; i <= j; --j) {
+      Kind k = data.ds[j].kind;
+      if ( WROTE != k && NONE != k ) {
+         start = j;
+         break;
+      }
    }
-   // a legkorábbi
-   return data.count-1;
+   // utolsó referencia megkeresése
+   int u = start;
+   while ( 0 < u && DELTA == data.ds[u].kind )
+      --u;
+vtl_ewrite("flushTill %d %d", i, start );
+   // képek kiírása
+   for (int j=start; i <= j; --j )
+      flushOne( j, u );
 }
 
-
-/// azon képek kiírása, amik után nagy eltérés volt
+/// szükséges képek kiírása
 void flush( bool all ) {
-   int till = find_flush( all );
-   for (int i = data.count-1; till <= i; --i ) {
-      switch ( data.ds[i].kind ) {
-         case WROTE: case NONE:
-         break;
-         case DELTA:
-            compose(i);
-            write( i );
-         break;
-         default:
-            vig_image_copy( data.imgs[i], data.out );
-            write( i );
-      }
-   }
-}
-
-
-
-/// rész simítása
-void smooth_part( int last, int unt, int ex, int ey ) {
-   int n = last-unt;
-   for (int i=1; i<=n; ++i) {
-      Delta ds = data.ds+last-i;
-      ds->ex = ex * i / n;
-      ds->ey = ey * i / n;
-   }
-}
-
-/// simított változások
-void smooth() {
-   int ex = 0;
-   int ey = 0;
-   int last = data.count-1;
-   for ( int i=last-1; 0 <= i; --i ) {
-      Delta ds = data.ds+i;
-      switch ( ds->kind ) {
-         case NONE: case WROTE:
-            ex = ey = 0;
-            last = i;
-         break;
-         case DELTA:
-            ex += ds->dx;
-            ey += ds->dy;
-         break;
-         case MUCH:
-            smooth_part( last, i-1, ex, ey );
-            ex = ey = 0;
-            last = i;
-         break;
-      }
-      smooth_part( last, 0, ex, ey );
-   }
-//    dumpds();
+   int u = data.count-1;
+   if ( MUCH == data.ds[0].kind )
+      flushTill( 1 );
+   else if ( all )
+      flushTill( 0 );
+   else if ( DELTA == data.ds[u].kind )
+      flushTill( u );
 }
 
 
@@ -268,23 +216,15 @@ void roll() {
    data.ds[0] = d;
 }
 
-/// kiírás
-void wri( VigImage img, int gq, int s ) {
-   VcpStr fname = vtl_sprintf("ds%d_%d.bmp", gq, s);
-   FILE * fh = fopen( fname, "w" );
-   vig_bmp_write( img, fh, vtl_fwrite );
-   fclose( fh );
-}
-
 /// utolsó két képkocka összehasonlítása
 void compare() {
    Delta ds = data.ds;
    if ( NONE == data.ds[1].kind ) {
       ds->kind = MUCH;
    } else {
-      vig_pyr_delta( data.imgs[0], data.imgs[1], data.pyrs[0], data.pyrs[1],
+      vig_pyr_delta( data.imgs[1], data.imgs[0], data.pyrs[1], data.pyrs[0],
          0.2, &ds->dx, &ds->dy );
-vtl_ewrite("\nMOVE %d %d", ds->dx, ds->dy );
+vtl_ewrite("\nMOVE %d %d\n", ds->dx, ds->dy );
       if ( VIG_MUCH == ds->dx )
          ds->kind = MUCH;
          else ds->kind = DELTA;
@@ -293,12 +233,10 @@ vtl_ewrite("\nMOVE %d %d", ds->dx, ds->dy );
 
 /// új képkocka feldolgozása
 VigImage next( FrameData d ) {
-   static int gq = 0;
-//   if ( 200 <= ++gq ) exit(1);
-   Delta ds = d->ds;
+// static int gq=0;
+// if ( 20 == ++gq ) exit(1);   
    vig_pyr_create( d->imgs[0], d->pyrs[0] );
    compare();
-   smooth();
    flush(false);
    roll();
    return NULL;

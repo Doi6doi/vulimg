@@ -243,6 +243,8 @@ bool vig_image_copy_part( VigImage src, VigImage dst, VtlRect rect,
    if ( ! vig_inited() ) return false;
    vigResult = VIG_PIXELERR;
    if ( ! vig_pixel_same( src->pixel, dst->pixel )) return false;
+   vigResult = VIG_SUCCESS;
+   if ( 0 == rect->width || 0 == rect->height ) return true;
 	vigResult = VIG_COORDERR;
    uint32_t rw = rect->width;
    uint32_t rh = rect->height;

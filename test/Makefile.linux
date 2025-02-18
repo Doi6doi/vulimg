@@ -71,8 +71,12 @@ deshake.elf: deshake.c frameproc.c
 
 deshake.run: deshake.elf
 	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
-        | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) -n 10 \
+	| $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) -n 10 \
 	| $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
+
+
+
+#	| $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
 #	| $(FFMPEG) -f rawvideo -pix_fmt $(FPIX) -s $(WIDTH)x$(HEIGHT) -i - -c:v libx264 $(OUT)
 
 
