@@ -115,30 +115,32 @@ vtl_ewrite("ex:%d ey:%d", ex, ey );
    int ax = abs(fx);
    int ay = abs(fy);
    // új kép
-   struct VtlRect r = { .left = 0, .top = 0, 
+   struct VigPart r = { .img=data.imgs[i], .left = 0, .top = 0, 
       .width = width()-ax, .height = height()-ay };
-   struct VtlRect q = { .left = bx, .top = by, 
-      .width = bx, .height = height()-by };
+   struct VigPart q = { .img=data.prev, .left = bx, .top = by, 
+      .width = ax, .height = height()-ay };
+//   struct VigPart q = { .img=data.prev, .left = bx, .top = by, 
+//      .width = ax, .height = height()-ay };
    int cx = 0, cy = 0;
    if ( 0 < fx ) {
       r.left = ax;
       ax = 0;
-      q.left = 0;
-      cx = bx;
+      q.left = width()-ax-bx;
+      cx = width()-ax;
    }
    if ( 0 < fy ) {
       r.top = ay;
       ay = 0;
-      q.top = 0;
-      cy = by;
+      q.top = height()-ay-by;
+      cy = height()-ay;
    }
-   vig_image_copy_part( data.imgs[i], data.out, &r, ax, ay );
+   vig_image_copy_part( &r, data.out, ax, ay );
    // előző kocka függőleges rész
-   vig_image_copy_part( data.prev, data.out, &q, cx, cy );
+   vig_image_copy_part( &q, data.out, cx, cy );
    // előző kocka vízszintes rész
-   r.width = width()-bx;
-   r.height = by;
-   vig_image_copy_part( data.prev, data.out, &q, cx, cy );
+   r.width = width()-ax;
+   r.height = ay;
+   vig_image_copy_part( &q, data.out, cx, cy );
    if ( 0 < i ) {
       data.ds[i-1].dx += fx;
       data.ds[i-1].dy += fy;

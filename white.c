@@ -7,13 +7,23 @@ TASK( white8, 2, struct VigWhiteParams );
 TASK( wcloud8, 2, struct VigWCloudParams );
 
 /// egy téglalap kiírása
+/*
 static void vig_rect_dump( VigRect r ) {
    DEBUG( "RECT -> %d, %d [%d,%d]/[%d,%d]", r->link, r->weight, 
       r->left, r->top, r->width, r->height );
 }
+*/
 
 /// VigRect -> VtlRect
 static void vig_rect_set( VtlRect r, VigRect s ) {
+   r->left = s->left;
+   r->top = s->top;
+   r->width = s->width;
+   r->height = s->height;
+}
+
+/// VigRect -> VigPart
+static void vig_part_set( VigPart r, VigRect s ) {
    r->left = s->left;
    r->top = s->top;
    r->width = s->width;
@@ -293,20 +303,19 @@ void vig_drawallrects( VigImage img, uint32_t n ) {
    uint32_t z = 4 << (2*n);
    uint32_t * p = vig_image_address( img );
    uint32_t stride = img->stride;
-DEBUG("debug_data %d", p[DIDX] );	    
-   struct VigRect gr;
-   struct VtlRect r;
+DEBUG("debug_data %d", p[DIDX] );	
+   struct VigRect gr;    
+   struct VigPart prt = { .img = img };
    for ( int y=0; y < img->height; y += z ) {
       for ( int x=0; x < img->width; x += z ) {
 		  uint32_t idx = y*stride + x/4;
 		  vig_rect_load( p+idx, stride, & gr );
 		  if ( EMPTY != gr.link ) {
 fprintf( stderr, "x:%d y:%d ", x, y );			  
-		     vig_rect_dump( & gr );
-   		     vig_rect_set( & r, & gr );
-//	   	     cdraw8( img, & r, 0xff );
-             vig_draw_rect( img, & r, 0xff );
-          }
+//		     vig_rect_dump( & gr );
+  		     vig_part_set( & prt, & gr );
+           vig_draw_rect( &prt, 0xff );
+        }
 	  }
    }
 }

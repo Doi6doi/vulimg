@@ -135,7 +135,10 @@ struct VigAddParams {
 
 struct VigRectParams {
    STRUCT VigImgParam img;
-   STRUCT VtlRect rect;
+   UINT left;
+   UINT top;
+   UINT width;
+   UINT height;
    UINT pixSize;
    UINT pixVal;
 };

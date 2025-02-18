@@ -20,16 +20,19 @@ typedef enum VigPlane { vpl_Unknown, vpl_R, vpl_G, vpl_B, vpl_Y, vpl_Cb, vpl_Cr 
 /// gpu stored image
 typedef struct VigImage * VigImage;
 
+/// rectangular part of image
+typedef struct VigPart {
+   VigImage img;
+   VigCoord left;
+   VigCoord top;
+   VigCoord width;
+   VigCoord height;
+} * VigPart;
+
 /// affine transformation
 typedef struct VigTransform {
    float sx, ry, rx, sy, dx, dy;
 } * VigTransform;
-
-/// part of an image
-typedef struct VigPart {
-   VigImage img;
-   VtlRect rect;
-} * VigPart;
 
 #define VIG_SUCCESS    VCP_SUCCESS
 #define VIG_HOSTMEM    VCP_HOSTMEM
@@ -77,8 +80,8 @@ void vig_image_free( VigImage );
 /// copy whole image
 bool vig_image_copy( VigImage src, VigImage dst );
 /// copy image part
-bool vig_image_copy_part( VigImage src, VigImage dst, VtlRect rect, 
-   VigCoord dstLeft, VigCoord dstTop );
+bool vig_image_copy_part( VigPart src, VigImage dst, VigCoord dLeft, VigCoord dTop );
+   
 /// extract plane from image
 bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst );
 /// add a plane to image
@@ -90,7 +93,7 @@ bool vig_image_add( VigImage src, VigValue pixel, VigImage dst );
 /// difference of two images
 bool vig_image_diff( VigImage a, VigImage b, VigImage dst );
 /// sum of difference
-bool vig_image_diffsum( VigImage a, VtlRect rect, VigImage b,
+bool vig_image_diffsum( VigPart a, VigImage b,
    VigCoord bLeft, VigCoord bTop, uint64_t * diff );
 /// average pixel
 bool vig_image_avg( VigImage img, VigValue * pix );
@@ -110,7 +113,7 @@ bool vig_white_clouds( VigImage img, float maxDist,
    VtlCloud clouds, uint32_t * count );	
    
 /// draw rectangle
-bool vig_draw_rect( VigImage img, VtlRect rect, VigValue pixel );
+bool vig_draw_rect( VigPart part, VigValue pixel );
 /// draw cloud
 bool vig_draw_cloud( VigImage img, VtlCloud cloud, VigValue pixel );
 
@@ -126,7 +129,5 @@ bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write );
 
 void vig_drawallrects( VigImage img, uint32_t n );
 void vig_drawallclouds( VigImage img, uint32_t n );
-
-void vig_dumpascii( VigImage img, VtlRect r );
 
 #endif // VULIMGH

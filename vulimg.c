@@ -237,34 +237,34 @@ bool vig_pixel_signed( VigPixel pix ) {
    }
 }
 
-bool vig_image_copy_part( VigImage src, VigImage dst, VtlRect rect,
+bool vig_image_copy_part( VigPart prt, VigImage dst, 
    VigCoord dstLeft, VigCoord dstTop ) 
 {
    if ( ! vig_inited() ) return false;
    vigResult = VIG_PIXELERR;
-   if ( ! vig_pixel_same( src->pixel, dst->pixel )) return false;
+   if ( ! vig_pixel_same( prt->img->pixel, dst->pixel )) return false;
    vigResult = VIG_SUCCESS;
-   if ( 0 == rect->width || 0 == rect->height ) return true;
+   if ( 0 == prt->width || 0 == prt->height ) return true;
 	vigResult = VIG_COORDERR;
-   uint32_t rw = rect->width;
-   uint32_t rh = rect->height;
-   if ( src->width < rect->left + rw ) return false;
-   if ( src->height < rect->top + rh ) return false;
+   uint32_t rw = prt->width;
+   uint32_t rh = prt->height;
+   if ( prt->img->width < prt->left + rw ) return false;
+   if ( prt->img->height < prt->top + rh ) return false;
    if ( dst->width < dstLeft + rw ) return false;
    if ( dst->height < dstTop + rh ) return false;
 	struct VigCopyParams pars;
-   vig_imgpar( src, &pars.src );
+   vig_imgpar( prt->img, &pars.src );
    vig_imgpar( dst, &pars.dst );
-   pars.sleft = rect->left;
-   pars.stop = rect->top;
-   pars.width = rect->width;
-   pars.height = rect->height;
+   pars.sleft = prt->left;
+   pars.stop = prt->top;
+   pars.width = prt->width;
+   pars.height = prt->height;
    pars.dleft = dstLeft;
    pars.dtop = dstTop;
    uint32_t nx;
    VcpTask t = vig_copy_task( & pars, dst->pixel, &nx );
    if ( ! t ) return false;
-	VcpStorage ss[2] = { src->stor, dst->stor };
+	VcpStorage ss[2] = { prt->img->stor, dst->stor };
    uint32_t ny = DIVC( pars.height, UGR );
 	vcp_task_setup( t, ss, nx, ny, 1, & pars );
 	return vig_run( t );
@@ -658,35 +658,35 @@ bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad ) {
    return true;
 }
 
-bool vig_image_diffsum( VigImage a, VtlRect r, VigImage b, 
+bool vig_image_diffsum( VigPart ap, VigImage b, 
    VigCoord bx, VigCoord by, uint64_t * diff ) 
 {
    if ( ! vig_inited() ) return false;
    vigResult = VIG_PIXELERR;
-   if ( ! vig_pixel_same( a->pixel, b->pixel )) return false;
-   uint32_t comps = vig_pixel_comps( a->pixel );
-   if ( 8 != vig_pixel_size( a->pixel ) / comps ) return false;
+   if ( ! vig_pixel_same( ap->img->pixel, b->pixel )) return false;
+   uint32_t comps = vig_pixel_comps( b->pixel );
+   if ( 8 != vig_pixel_size( b->pixel ) / comps ) return false;
    vigResult = VIG_COORDERR;
-   if ( a->width < r->left + r->width ) return false;
-   if ( a->height < r->top + r->height ) return false;
-   if ( b->width < bx + r->width ) return false;
-   if ( b->height < by + r->height ) return false;
-   bool sgn = vig_pixel_signed( a->pixel );
+   if ( ap->img->width < ap->left + ap->width ) return false;
+   if ( ap->img->height < ap->top + ap->height ) return false;
+   if ( b->width < bx + ap->width ) return false;
+   if ( b->height < by + ap->height ) return false;
+   bool sgn = vig_pixel_signed( b->pixel );
    struct VigDSumParams pars = {
 	   .mode = sgn ? 4 : 3,
-	   .astride = a->stride,
+	   .astride = ap->img->stride,
 	   .bstride = b->stride,
-	   .aleft = r->left * comps,
-	   .atop = r->top,
+	   .aleft = ap->left * comps,
+	   .atop = ap->top,
 	   .bleft = bx * comps,
 	   .btop = by,
-	   .width = r->width * comps,
-	   .height = r->height
+	   .width = ap->width * comps,
+	   .height = ap->height
    };
    if ( ! vig_temp_grow( pars.width*4 )) return false;
    VcpTask t = vig_dsum();
    if ( ! t ) return false;
-   VcpStorage ss[3] = { a->stor, b->stor, vulimg.temp };
+   VcpStorage ss[3] = { ap->img->stor, b->stor, vulimg.temp };
    vcp_task_setup( t, ss, DIVC( pars.width, UGR ), 1, 1, & pars );
    if ( ! vig_run( t )) return false;
    uint32_t * p = vcp_storage_address( vulimg.temp );
