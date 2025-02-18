@@ -22,8 +22,7 @@ float getComp( int y, int x, int iComp ) {
    int xBit = xComp * p.compBits;
    uint v = source[ y*p.src.stride + xBit / 32 ];
    int s = xBit % 32;
-   bitfieldExtract( v,0, p.compBits );
-   return float( bitfieldExtract( v, 32-s-p.compBits, p.compBits ));
+   return float( bitfieldExtract( v, s, p.compBits ));
 }
 
 float calcCompRow( int y, float x, int iComp ) {
@@ -88,7 +87,7 @@ void main() {
    uint ret = 0;
    for (int i=0; i<32; i += p.compBits) {
       uint v = uint( calcComp( y, xPix, iComp ) );
-      ret = bitfieldInsert( ret, v, 32-i-p.compBits, p.compBits );
+      ret = bitfieldInsert( ret, v, i, p.compBits );
       if ( ++iComp == p.compCount ) {
          ++xPix;
          iComp = 0;

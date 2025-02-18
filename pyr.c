@@ -76,8 +76,8 @@ static bool vig_pyr_delta_best( uint32_t * sum,
 }   
 
 void vig_dumpdimg( uint8_t * p, VigDeltaParams pars ) {
-vtl_ewrite("dumpdimg %d %d %d %d", pars->img.width, pars->img.height, pars->top, pars->comps );
    uint32_t t = pars->img.stride * 4;
+vtl_ewrite("dumpdimg p:%p %d %d %d %d t:%d", p, pars->img.width, pars->img.height, pars->top, pars->comps,t );
    for (int r=0; r<pars->img.height; ++r) {
       for (int c=0; c<pars->img.width * pars->comps; ++c) {
          int x = p[(r+pars->top)*t + c];
@@ -184,9 +184,9 @@ static bool vig_pyr_delta_step( int i, int n, VigImage a,
       y = 0;
    if ( 2 >= w || 2 >= h )
       return true;
-// fprintf( stderr, "\nvpds i:%d n:%d w:%d h:%d y:%d dx:%d dy:%d\n", i, n, w, h, y, *dx, *dy );
    pars->img.width = w;
    pars->img.height = h;
+   pars->img.stride = pa->stride;
    pars->top = y;
    pars->dx *= 2;
    pars->dy *= 2;
@@ -194,7 +194,6 @@ static bool vig_pyr_delta_step( int i, int n, VigImage a,
    if ( i < PSMALL ) {
 //   if ( i < 100 ) {
       vig_pyr_delta_cpu( i, n, a, pa, pb, pars, lim );
-// vtl_ewrite("dstep dx:%d dy:%d", pars->dx, pars->dy );
       return true;
    }
    if ( ! vig_temp_grow( 10*h*4 )) return false;

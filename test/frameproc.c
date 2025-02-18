@@ -67,7 +67,7 @@ bool vfp_pixel_arg( int argc, char ** argv, int * at, VigPixel * ret ) {
    else if ( vtl_same( s, "ybr24" ))
       *ret = vix_ybr24;
    else
-      vtl_die( vtl_cat( "Unknown pixel argument (1,8,g8,rgb25,rgba32,ybr24): ",s ));
+      vtl_die( "Unknown pixel argument (1,8,g8,rgb25,rgba32,ybr24): %s",s );
    return true;
 }
    
@@ -78,7 +78,7 @@ bool vfp_nat_arg( int argc, char ** argv, int * at, uint32_t * ret ) {
       vtl_die( "Missing number argument");
    VcpStr s = argv[(*at)++];
    if ( ! vtl_nat( s, ret ))
-      vtl_die( vtl_cat("Not a number argument: ", s));
+      vtl_die( "Not a number argument: %s", s );
    return true;
 }
    
@@ -92,5 +92,5 @@ bool vfp_arg( FrameData fd, int argc, char ** argv, int * at ) {
       return vfp_nat_arg( argc, argv, at, & vfp_height );
    if ( vtl_same( s, "-p" ))
       return vfp_pixel_arg( argc, argv, at, & vfp_pixel );
-   vtl_die( vtl_cat( "Unknown argument: ", s ));
+   vtl_die( "Unknown argument: %s", s );
 }

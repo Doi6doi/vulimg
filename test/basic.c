@@ -3,7 +3,7 @@
 #include <vultools.h>
 #include <stdio.h>
 
-#define SMILEYBMP "smiley.bmp"
+#define SMILEYBMP "smiley3.bmp"
 #define SMILEY2BMP "smiley2.bmp"
 #define SMILEYRAW "smiley.raw"
 
@@ -49,7 +49,7 @@ vtl_ewrite("transform");
    vig_image_transform( i2, i3, & t );
    vig_check_fail();
    struct VtlRect r = { .left=0, .top=0, .width=80, .height=120 };
-   vig_image_copy( i3, i3, &r, 100, 100 );
+   vig_image_copy( i3, i3, &r, 91, 91 );
    vig_check_fail();
 vtl_ewrite("write bmp");
    f = fopen( SMILEY2BMP,"wb");

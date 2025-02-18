@@ -16,6 +16,7 @@ layout( binding = 1 ) buffer Dest {
 };
    
 void edgePixel( uint x, uint y ) {
+   return;
    int sm = int( p.sleft ) % 32;
    int rest = int(sm+p.width) - int( x*32 );
    if ( 32 <= rest ) return;
@@ -41,20 +42,21 @@ void edgePixel( uint x, uint y ) {
 void midPixel( uint x, uint y ) {
    int sm = int( p.sleft ) % 32;
    int dm = int( p.dleft ) % 32;
-   uint si = (y+p.stop)*p.src.stride + p.sleft/32 +x;
+   uint si = (y+p.stop)*p.src.stride + p.sleft/32 + x;
    uint v;
-   if ( sm <= dm ) {
-      int a = sm+32-dm;
-      int b = 32-a;
-      v = bitfieldExtract( source[si-1], b, a )
-         | bitfieldExtract( source[si], 0, b ) << a;
+   if ( sm < dm ) {
+      int b = dm - sm;
+      int a = 32-b;
+      v = bitfieldExtract( source[si-1], a, b )
+         | bitfieldExtract( source[si], 0, a ) << b;
    } else { 
       int a = sm - dm;
       int b = 32-a;
       v = bitfieldExtract( source[si], a, b )
          | bitfieldExtract( source[si+1], 0, a ) << b;
    }
-   dest[ (y+p.dtop)*p.dst.stride + p.dleft/32 + x ] = v;
+   uint di = (y+p.dtop)*p.dst.stride + p.dleft/32 + x;
+   dest[ di ] = v;
 }
    
    

@@ -29,15 +29,15 @@ int main() {
    VcpVulcomp v = vcp_init( "delt", VCP_VALIDATION );
 //   vcp_select_physical( v, vtl_physical_cpu );
    vig_init( v );
-   VigImage i1 = load( "s1.bmp" );
-   VigImage i2 = load( "s2.bmp" );
+   VigImage i1 = load( "ds1_1.bmp" );
+   VigImage i2 = load( "ds2_1.bmp" );
    VigImage p1 = pyr_create( i1 );
    VigImage p2 = pyr_create( i2 );
-   save(p1, "p1.bmp");
-   save(p2, "p2.bmp");
    int32_t dx, dy;
    if ( ! vig_pyr_delta( i1, i2, p1, p2, 0.2, &dx, &dy ))
       vtl_die("Could not delta");
+   save(p1, "p1.bmp");
+   save(p2, "p2.bmp");
    vtl_ewrite( "dx:%d dy:%d", dx, dy );
    vig_done(v);
    vcp_done( v );

@@ -125,6 +125,6 @@ bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write );
 void vig_drawallrects( VigImage img, uint32_t n );
 void vig_drawallclouds( VigImage img, uint32_t n );
 
-
+void vig_dumpascii( VigImage img, VtlRect r );
 
 #endif // VULIMGH

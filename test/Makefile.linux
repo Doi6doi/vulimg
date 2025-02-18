@@ -1,4 +1,5 @@
 #TESTS=basic mini diff pyr rects foltok
+ALLTESTS=basic mini diff pyr rects foltok delt deshake
 TESTS=deshake
 # TESTS=foltok
 TEMPS=smiley.raw smiley2.bmp
@@ -31,7 +32,7 @@ RFL=LD_LIBRARY_PATH=$(subst $(SPACE),:,$(LIBDIR))
 test: $(TESTS:=.run)
 
 clean:
-	$(RM) $(TESTS:=.elf) $(TEMPS)
+	$(RM) $(ALLTESTS:=.elf) $(TEMPS)
 
 mini.elf: mini.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)
