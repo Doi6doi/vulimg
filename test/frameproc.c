@@ -67,7 +67,7 @@ bool vfp_pixel_arg( int argc, char ** argv, int * at, VigPixel * ret ) {
    else if ( vtl_same( s, "ybr24" ))
       *ret = vix_ybr24;
    else
-      vtl_die( "Unknown pixel argument (1,8,g8,rgb25,rgba32,ybr24): %s",s );
+      vtl_die( "Unknown pixel argument (1,8,g8,rgb24,rgba32,ybr24): %s",s );
    return true;
 }
    

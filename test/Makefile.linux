@@ -8,14 +8,18 @@ FFMPEG=ffmpeg
 FFPLAY=ffplay
 
 IN=shk.mkv
+OUT=nshk.mkv
 WIDTH=1280
 HEIGHT=720
 # WIDTH=1920
 # HEIGHT=1080
 OWIDTH=1280
 OHEIGHT=720
-FPIX=gray8
-VPIX=g8
+FPIX=rgb24
+VPIX=rgb24
+
+# FPIX=gray8
+# VPIX=g8
 
 LIBS=vulcmp vultools vulimg
 INCDIR=$(LIBS:%=../../%)
@@ -69,6 +73,9 @@ deshake.run: deshake.elf
 	$(FFMPEG) -i $(IN) -pix_fmt $(FPIX) -c:v rawvideo -f rawvideo - \
         | $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) -n 10 \
 	| $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
+#	| $(FFMPEG) -f rawvideo -pix_fmt $(FPIX) -s $(WIDTH)x$(HEIGHT) -i - -c:v libx264 $(OUT)
+
+
 
 delt.elf: delt.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)

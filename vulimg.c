@@ -237,7 +237,7 @@ bool vig_pixel_signed( VigPixel pix ) {
    }
 }
 
-bool vig_image_copy( VigImage src, VigImage dst, VtlRect rect,
+bool vig_image_copy_part( VigImage src, VigImage dst, VtlRect rect,
    VigCoord dstLeft, VigCoord dstTop ) 
 {
    if ( ! vig_inited() ) return false;
@@ -266,6 +266,18 @@ bool vig_image_copy( VigImage src, VigImage dst, VtlRect rect,
    uint32_t ny = DIVC( pars.height, UGR );
 	vcp_task_setup( t, ss, nx, ny, 1, & pars );
 	return vig_run( t );
+}
+
+bool vig_image_copy( VigImage src, VigImage dst ) {
+   if ( ! vig_inited() ) return false;
+   vigResult = VIG_PIXELERR;
+   if ( ! vig_pixel_same( src->pixel, dst->pixel )) return false;
+	vigResult = VIG_COORDERR;
+   uint32_t h = vig_image_height(src);
+   if ( vig_image_width(src) != vig_image_width(dst)) return false;
+   if ( h != vig_image_height(dst)) return false;
+   uint32_t s  = vig_image_stride(src);
+   return vcp_storage_copy( src->stor, dst->stor, 0, 0, s*h );
 }
 
 static bool vig_inv_transform( VigTransform src, VigTransform dst ) {
@@ -474,8 +486,7 @@ bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst ) {
    vigResult = VIG_PIXELERR;
    switch ( src->pixel ) {
 	  case vix_8: case vix_g8:
-        struct VtlRect r = {.left=0, .top=0, .width=pars.width, .height=pars.height };
-	     return vig_image_copy( src, dst, & r, 0, 0 );
+	     return vig_image_copy( src, dst );
 	  default: ;
    }
    uint32_t us;

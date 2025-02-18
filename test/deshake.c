@@ -18,6 +18,7 @@ struct FrameData {
    VigImage * imgs;
    VigImage * pyrs;
    VigImage out;
+   VigImage prev;
 };
 
 struct FrameData data;
@@ -74,6 +75,7 @@ void init( int argc, char ** argv ) {
    VigCoord w = vig_image_width( data.out );
    VigCoord h = vig_image_height( data.out );
    VigPixel x = vig_image_pixel( data.out );
+   data.prev = vig_image_create( w, h, x );
    for ( int i=0; i < data.count; ++i) {
       data.ds[i].kind = NONE;
       data.imgs[i] = vig_image_create( w, h, x );
@@ -109,30 +111,30 @@ void compose_horz( Delta d ) {
       r.top = height()-2*y;
       y = height()-y;
    }
-   vig_image_copy( data.out, data.out, &r, x, y );
+   vig_image_copy_part( data.prev, data.out, &r, x, y );
 }
 
 /// függőleges rész másolása
 void compose_vert( Delta d ) {
    if ( 0 == d->ex ) return;
-   VigCoord x = abs(d->ex);
-   VigCoord y = abs(d->ey);
+   VigCoord ax = abs(d->ex);
+   VigCoord ay = abs(d->ey);
    struct VtlRect r = { .left = 0, .top = 0, 
-      .width = x, .height = height()-2*y };
+      .width = ax, .height = height()-ay };
    if ( 0 < d->ex ) {
-      r.left = x;
-      x = 0;
+      r.left = ax;
+      ax = 0;
    } else {
-      r.left = width()-2*x;
-      x = width()-x;
+      r.left = width()-ax;
+      ax = width()-ax;
    }
    if ( 0 < d->ey ) {
-      r.top = 2*y;
+      r.top = height()-ay;
    } else {
-      r.top = y;
-      y = 0;
+      r.top = ay;
+      ay = 0;
    }
-   vig_image_copy( data.out, data.out, &r, x, y );
+   vig_image_copy_part( data.prev, data.out, &r, ax, ay );
 }
 
 /// új kép másolása
@@ -149,8 +151,8 @@ void compose_new( Delta d, int i ) {
       r.top = ay;
       ay = 0;
    }
-vtl_ewrite( "compose_new %d,%d:%d,%d %d,%d", r.left, r.top, r.width, r.height, ax, ay );
-   vig_image_copy( data.imgs[i], data.out, &r, ax, ay );
+// vtl_ewrite( "compose_new %d,%d:%d,%d %d,%d", r.left, r.top, r.width, r.height, ax, ay );
+   vig_image_copy_part( data.imgs[i], data.out, &r, ax, ay );
    
 }
 
@@ -159,25 +161,22 @@ void compose( int i ) {
    Delta d = data.ds+i;
    d->ex = d->dx - d->ex;
    d->ey = d->dy - d->ey;
-//   d->ex -= d->dx;
-//   d->ey -= d->dy;
+//   compose_horz( d );
+   compose_vert( d );
+   compose_new( d, i );
    if ( 0 < i ) {
       data.ds[i-1].dx += d->ex;
       data.ds[i-1].dy += d->ey;
    }
-vtl_ewrite("compose %d,%d", d->ex, d->ey );   
-//   compose_horz( d );
-//   compose_vert( d );
-   compose_new( d, i );
    vig_check_fail();
 }
 
 /// kép kiírása
-void write( VigImage img, int i ) {
-   static int gq=0;
-   vig_raw_write( img, stdout, vtl_fwrite, false );
-//   if ( ++ gq < 20 ) 
-//      wri( img, gq, 0 );
+void write( int i ) {
+   vig_raw_write( data.out, stdout, vtl_fwrite, false );
+   VigImage save = data.prev;
+   data.prev = data.out;
+   data.out = save;
    data.ds[i].kind = WROTE;
 }
 
@@ -198,17 +197,17 @@ int find_flush( bool all ) {
 /// azon képek kiírása, amik után nagy eltérés volt
 void flush( bool all ) {
    int till = find_flush( all );
-vtl_ewrite("till: %d", till);   
    for (int i = data.count-1; till <= i; --i ) {
       switch ( data.ds[i].kind ) {
          case WROTE: case NONE:
          break;
          case DELTA:
             compose(i);
-            write( data.out, i );
+            write( i );
          break;
          default:
-            write( data.imgs[i], i );
+            vig_image_copy( data.imgs[i], data.out );
+            write( i );
       }
    }
 }
@@ -249,7 +248,7 @@ void smooth() {
       }
       smooth_part( last, 0, ex, ey );
    }
-   dumpds();
+//    dumpds();
 }
 
 
