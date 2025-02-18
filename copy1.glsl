@@ -15,57 +15,47 @@ layout( binding = 1 ) buffer Dest {
    uint dest[];
 };
    
-void edgePixel( uint x, uint y ) {
-   return;
-   int sm = int( p.sleft ) % 32;
-   int rest = int(sm+p.width) - int( x*32 );
-   if ( 32 <= rest ) return;
-   int left = 0;
-   if ( 0 == x ) {
-      left = int( p.dleft ) % 32;
-      rest -= left;
-   }
-   uint si = (y+p.stop)*p.src.stride + p.sleft/32 + x;
-   uint v;
-   if ( left+rest <= 32 ) {
-      v = bitfieldExtract( source[si], left, rest );
-   } else {
-      int a = 32-left;
-      v = bitfieldExtract( source[si], left, a )
-         | bitfieldExtract( source[si+1], 0, rest-a ) << a;
-   }
-   uint di = (y+p.dtop)*p.dst.stride + p.dleft/32 + x;
-   dest[ di ] = bitfieldInsert( dest[di], v, left, rest );
-}
+uint x, y;   
    
-
-void midPixel( uint x, uint y ) {
+uint bits(int b, int l) {
    int sm = int( p.sleft ) % 32;
-   int dm = int( p.dleft ) % 32;
+   b += sm;
    uint si = (y+p.stop)*p.src.stride + p.sleft/32 + x;
-   uint v;
-   if ( sm < dm ) {
-      int b = dm - sm;
-      int a = 32-b;
-      v = bitfieldExtract( source[si-1], a, b )
-         | bitfieldExtract( source[si], 0, a ) << b;
-   } else { 
-      int a = sm - dm;
-      int b = 32-a;
-      v = bitfieldExtract( source[si], a, b )
-         | bitfieldExtract( source[si+1], 0, a ) << b;
+   if ( 0 > b ) {
+      b = -b;
+      return bitfieldExtract( source[si-1], 32-b, b )
+         | bitfieldExtract( source[si], 0, l-b ) << b;
+   } else if ( 32 < b+l ) {
+      b = 32-b;
+      return bitfieldExtract( source[si], 32-b, b )
+         | bitfieldExtract( source[si+1], 0, l-b ) << b;
+   } else {
+      return bitfieldExtract( source[si], b, l );
    }
-   uint di = (y+p.dtop)*p.dst.stride + p.dleft/32 + x;
-   dest[ di ] = v;
-}
+}   
    
    
 void main() {
-   uint y = gl_GlobalInvocationID.y;
+   y = gl_GlobalInvocationID.y;
    if ( p.height <= y ) return;
-   uint x = gl_GlobalInvocationID.x;
-   uint xl = (p.width+31)/32;
-   if ( 0 == x || xl <= x )
-      edgePixel( x, y );
-      else midPixel( x, y );
+   x = gl_GlobalInvocationID.x;
+   int dm = int( p.dleft ) % 32;
+   int rest = int( dm+p.width )-int(x*32);
+   if ( 0 >= rest ) return;
+   uint di = (y+p.dtop)*p.dst.stride + p.dleft/32 + x;
+   uint v;
+   int l;
+   if ( 0 == x ) {
+      // bal pixel
+      l = min( rest, 32-dm );
+      v = bitfieldInsert( dest[di], bits(0,l), dm, l );
+   } else if ( dm+rest < 32 ) {
+      // jobb pixel
+      l = min( 32, dm+rest );
+      v = bitfieldInsert( dest[di], bits(-dm,l), 0, l );
+   } else {
+      // középső pixel
+      v = bits(-dm,32);
+   }
+   dest[di] = v;
 }
