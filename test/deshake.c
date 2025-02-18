@@ -40,6 +40,19 @@ VigImage * frame( FrameData d ) {
    return & d->out;
 }
 
+/// egy delta kiírása
+void dumpd( int i ) {
+   Delta d = data.ds+i;
+   vtl_ewrite( "%d: %d %d,%d %d,%d", i, d->kind, d->dx, d->dy, d->ex, d->ey );
+}
+
+/// ds-ek kiírása
+void dumpds() {
+   for (int i=0; i<data.count; ++i)
+      dumpd(i);
+   vtl_ewrite("");
+}
+
 bool arg( FrameData d, int argc, char ** argv, int * at ) {
    if ( argc <= *at ) return false;
    VcpStr s = argv[(*at)++];
@@ -136,14 +149,24 @@ void compose_new( Delta d, int i ) {
       r.top = y;
       y = 0;
    }
+
+vtl_ewrite( "compose_new %d,%d:%d,%d %d,%d", r.left, r.top, r.width, r.height, x, y );
+vtl_ewrite( "szs %p %d,%d %p %d,%d", data.imgs[i], vig_image_width( data.imgs[i] ),
+   vig_image_height(data.imgs[i]), data.out, vig_image_width( data.out ), vig_image_height(data.out ));
+
    vig_image_copy( data.imgs[i], data.out, &r, x, y );
+
+vtl_ewrite( "res:%d", vig_error() );
+   
 }
 
 /// kép készítése az előzőből és az újból
 void compose( int i ) {
+vtl_ewrite("compose");   
+
    Delta d = data.ds+i;
-   compose_horz( d );
-   compose_vert( d );
+//   compose_horz( d );
+//   compose_vert( d );
    compose_new( d, i );
    vig_check_fail();
 }
@@ -171,6 +194,7 @@ int find_flush( bool all ) {
 /// azon képek kiírása, amik után nagy eltérés volt
 void flush( bool all ) {
    int till = find_flush( all );
+vtl_ewrite("till: %d", till);   
    for (int i = data.count-1; till <= i; --i ) {
       if ( WROTE == data.ds[i].kind ) continue;
       if ( MUCH != data.ds[i].kind )
@@ -201,6 +225,7 @@ Delta smooth_update( int * snc, int unt ) {
 
 /// simított változások
 void smooth() {
+vtl_ewrite("SMOOTH");   
    int start = data.count-1;
    Delta s = smooth_update( &start, start );
    for (int i=start-1; 0<=i; --i) {
@@ -213,6 +238,7 @@ void smooth() {
       }
    }
    smooth_update( &start, 0 );
+   dumpds();
 }
 
 
@@ -232,17 +258,26 @@ void roll() {
    data.ds[0] = d;
 }
 
+void wrimg( VigImage img, VcpStr fname ) {
+   FILE * fh = fopen( fname, "w" );
+   vig_bmp_write( img, fh, vtl_fwrite );
+   fclose( fh );
+}
+
 /// új képkocka feldolgozása
 VigImage next( FrameData d ) {
+   struct VtlRect r = {.left=0, .top=0, .width=64, .height=64 };
+   vig_image_copy( d->imgs[0], d->out, &r, 0, 0 );
    vig_pyr_create( d->imgs[0], d->pyrs[0] );
+   Delta ds = d->ds;
    vig_pyr_delta( d->imgs[0], d->imgs[1], d->pyrs[0], d->pyrs[1],
-      0.2, &d->ds[0].dx, &d->ds[0].dy );
-fprintf( stderr, "dellta: %d %d\n\n", d->ds[0].dx, d->ds[0].dy );
+      0.2, &ds->dx, &ds->dy );
+   ds->kind = VIG_MUCH == ds->dx ? MUCH : DELTA;
+vtl_ewrite("MOVE %d %d", d->ds[0].dx, d->ds[0].dy );
    smooth();
    flush(false);
    roll();
-   return d->out;
-//   return d->pyrs[0];
+   return NULL;
 }
 
 /// befejezés

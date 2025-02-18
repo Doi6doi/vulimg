@@ -55,17 +55,16 @@ static bool vig_pyr_delta_check( VigImage a, VigImage b, bool pyr ) {
 static bool vig_pyr_delta_best( uint32_t * sum, 
    uint32_t limit, int32_t * dx, int32_t * dy ) 
 {
+   static char perm[9] = { 5,2,4,6,8,1,3,7,9 };
    VigDir best = 0;
    sum[best] = VIG_MUCH;
-   for (int j=1; j<=9; ++j) {
-      uint32_t jv = sum[j];
-      if ( limit>=jv && 
-         (sum[best] > jv
-         || (sum[best] == jv && 5 == j ))
-      )
-         best = j;
+   for (int j=0; j<9; ++j) {
+      int k=perm[j];
+      uint32_t kv = sum[k];
+      if ( limit >= kv && sum[best] > kv )
+         best = k;
    }
-vtl_ewrite( "best:%d v:%d dx:%d dy:%d", best, sum[best], *dx, *dy );   
+// vtl_ewrite( "best:%d v:%d dx:%d dy:%d", best, sum[best], *dx, *dy );   
    if (0 == best) {
       *dx = *dy = VIG_MUCH;
       return false;
@@ -161,7 +160,7 @@ static bool vig_pyr_delta_bests( VigDeltaParams p, float wclimit ) {
    }
 /*   for (int j=1; j<=9; ++j)
       vtl_ewrite( "d:%d sum:%d", j, sum[j] );
-      */
+      */ 
    return vig_pyr_delta_best( sum, h*255*wclimit, &p->dx, &p->dy );
 }
 
@@ -171,7 +170,8 @@ static bool vig_pyr_delta_bests( VigDeltaParams p, float wclimit ) {
 static bool vig_pyr_delta_step( int i, int n, VigImage a, 
    VigImage pa, VigImage pb, float limit, VigDeltaParams pars )
 {
-   vig_imgpar( pa, & pars->img );
+// vtl_ewrite("deltastep %d dx:%d dy:%d", i, pars->dx, pars->dy );
+   if ( VIG_MUCH == pars->dx ) return true;
    int w = vig_image_width(a);
    int h = vig_image_height(a);
    int y = -h;
@@ -194,7 +194,7 @@ static bool vig_pyr_delta_step( int i, int n, VigImage a,
    if ( i < PSMALL ) {
 //   if ( i < 100 ) {
       vig_pyr_delta_cpu( i, n, a, pa, pb, pars, lim );
-vtl_ewrite("dstep dx:%d dy:%d", pars->dx, pars->dy );
+// vtl_ewrite("dstep dx:%d dy:%d", pars->dx, pars->dy );
       return true;
    }
    if ( ! vig_temp_grow( 10*h*4 )) return false;
@@ -217,14 +217,13 @@ bool vig_pyr_delta( VigImage a, VigImage b, VigImage pyra, VigImage pyrb,
    if ( ! vig_pyr_delta_check( a, pyrb, true )) return false;
    struct VigDeltaParams pars;
    pars.comps = vig_pixel_size( a->pixel )/8;
+   pars.img.stride = a->stride;
    pars.dx = 0;
    pars.dy = 0;
    uint32_t n = vig_pyr_count( a );
-   *dx = *dy = 0;
    for (int i=0; i<n; ++i) {
       if ( ! vig_pyr_delta_step( i, n, a, pyra, pyrb, limit, &pars )) 
          return false;
-      if ( VIG_MUCH == *dx ) return true;
    }
    if ( ! vig_pyr_delta_step( n, n, a, a, b, limit, &pars ))
       return false;

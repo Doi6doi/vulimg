@@ -7,10 +7,6 @@
 #define SMILEY2BMP "smiley2.bmp"
 #define SMILEYRAW "smiley.raw"
 
-void ewrite( VcpStr msg ) {
-   vtl_ewrite( msg );
-}
-
 uint32_t avg( VigImage i ) {
    uint64_t ret = 0;
    uint32_t * p = vig_image_address( i );
@@ -24,22 +20,22 @@ int main() {
    VcpVulcomp v = vcp_init( "basic", VCP_VALIDATION );
    vig_init( v );
    vig_check_fail();
-ewrite("read bmp");
+vtl_ewrite("read bmp");
    FILE * f = fopen( SMILEYBMP,"rb");
    VigImage i1 = vig_bmp_read( f, vtl_fread );
    fclose(f);
    vig_check_fail();
-ewrite("write raw");
+vtl_ewrite("write raw");
    f = fopen( SMILEYRAW,"wb");
    vig_raw_write( i1, f, vtl_fwrite, false );
    fclose(f);
    vig_check_fail();
-ewrite("read raw");
+vtl_ewrite("read raw");
    VigImage i2 = vig_image_create( vig_image_width(i1),
       vig_image_height(i1), vig_image_pixel(i1) );
    VigImage i3 = vig_image_create( vig_image_width(i1),
       vig_image_height(i1), vig_image_pixel(i1) );
-ewrite("transform");
+vtl_ewrite("transform");
    struct VigTransform t = { 
 //      .sx=1,      .rx=0, .dx=10,
 //      .ry=0,      .sy=1, .dy=10 
@@ -52,10 +48,10 @@ ewrite("transform");
    vig_check_fail();
    vig_image_transform( i2, i3, & t );
    vig_check_fail();
-   struct VtlRect r = { .left=10, .top=10, .width=30, .height=30 };
-   vig_image_copy( i3, i3, &r, 50, 60 );
+   struct VtlRect r = { .left=0, .top=0, .width=80, .height=120 };
+   vig_image_copy( i3, i3, &r, 100, 100 );
    vig_check_fail();
-ewrite("write bmp");
+vtl_ewrite("write bmp");
    f = fopen( SMILEY2BMP,"wb");
    vig_bmp_write( i3, f, vtl_fwrite );
    fclose(f);

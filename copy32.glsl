@@ -21,6 +21,6 @@ void main() {
    if ( p.height <= y ) return;
    uint x = gl_GlobalInvocationID.x;
    if ( p.width <= x ) return;
-   dest[ (y+p.dtop)*p.dst.stride + (x+p.dleft) ]
-      = source[ (y+p.stop)*p.src.stride + (x+p.sleft) ];
+   dest[ (y+p.dtop)*p.dst.stride + p.dleft + x ]
+      = source[ (y+p.stop)*p.src.stride + p.sleft + x ];
 }

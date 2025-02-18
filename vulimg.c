@@ -43,12 +43,6 @@ int vigResult = VIG_SUCCESS;
 #include "dsum.inc"
 #include "add8.inc"
 
-/*
-static void ewrite( VcpStr msg ) {
-   fprintf( stderr, "%s\n", msg );
-   fflush( stderr );
-}
-*/
 int vig_error() { return vigResult; }
 
 void vig_check_fail() {
@@ -58,12 +52,14 @@ void vig_check_fail() {
 
 bool vig_run( VcpTask t ) {
    vigResult = VIG_TASKERR;
+// vtl_ewrite("vigrun %p", t );   
    vcp_task_start( t );
-   if (( vigResult = vcp_error() )) return false;
+// vtl_ewrite("vigstart %d", vcp_error() );   
+   if ( vcp_error() ) return false;
    while ( ! vcp_task_wait( t, TICK )) {
       ;
    }
-vtl_ewrite("vigrun %d", vcp_error() );   
+// vtl_ewrite("vigrun %d", vcp_error() );   
    if (( vigResult = vcp_error() )) return false;
    vigResult = VIG_SUCCESS;
    return true;
@@ -196,20 +192,29 @@ TASK( add8, 2, struct VigAddParams );
 TASK( copy32, 2, struct VigCopyParams );
 
 /// task for copy
-static VcpTask vig_copy_task( VigCopyParams pars, VigPixel pix ) {
+static VcpTask vig_copy_task( VigCopyParams pars, VigPixel pix,
+   uint32_t * nx 
+) {
+vtl_ewrite("ct");   
    uint32_t pxs = vig_pixel_size( pix );
    if ( 0 == pars->sleft * pxs % 32
-      && 0 == pars->width % 32
-      && 0 == pars->dleft % 32 )
+      && 0 == pars->width * pxs % 32
+      && 0 == pars->dleft *pxs % 32 )
    {
+vtl_ewrite("COPY32 w:%d pxs:%d", pars->width, pxs);      
       pars->sleft = pars->sleft * pxs / 32;
       pars->width = pars->width * pxs / 32;
       pars->dleft = pars->dleft * pxs / 32;
+      *nx = DIVC( pars->width, UGR );
+vtl_ewrite("COPY32 w:%d h:%d nx:%d ss:%d ds:%d", pars->width, pars->height, *nx,
+   pars->src.stride, pars->dst.stride );      
       return vig_copy32();
    }
    pars->sleft *= pxs;
    pars->width *= pxs;
    pars->dleft *= pxs;
+   *nx = DIVC( pars->width, UGR*32 );
+vtl_ewrite("COPY1");      
    return vig_copy1();
 }
 
@@ -251,19 +256,22 @@ bool vig_image_copy( VigImage src, VigImage dst, VtlRect rect,
    if ( dst->width < dstLeft + rw ) return false;
    if ( dst->height < dstTop + rh ) return false;
 	struct VigCopyParams pars;
-   vig_imgpar( src, & pars.src );
-   vig_imgpar( dst, & pars.dst );
+   vig_imgpar( src, &pars.src );
+   vig_imgpar( dst, &pars.dst );
    pars.sleft = rect->left;
    pars.stop = rect->top;
    pars.width = rect->width;
    pars.height = rect->height;
    pars.dleft = dstLeft;
    pars.dtop = dstTop;
-   uint32_t nx = DIVC( rect->width * vig_pixel_size( dst->pixel ), 32*UGR );
-   VcpTask t = vig_copy_task( & pars, dst->pixel );
+   uint32_t nx;
+   VcpTask t = vig_copy_task( & pars, dst->pixel, &nx );
    if ( ! t ) return false;
 	VcpStorage ss[2] = { src->stor, dst->stor };
-	vcp_task_setup( t, ss, nx, DIVC( dst->height, UGR ), 1, & pars );
+   uint32_t ny = DIVC( pars.height, UGR );
+	vcp_task_setup( t, ss, nx, ny, 1, & pars );
+vtl_ewrite("copy s:%d,%d:%d,%d d:%d,%d ng:%d,%d", pars.sleft, pars.stop, pars.width, pars.height,
+pars.dleft, pars.dtop, nx, ny );
 	return vig_run( t );
 }
 
