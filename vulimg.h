@@ -79,8 +79,6 @@ void vig_image_free( VigImage );
 
 /// copy whole image
 bool vig_image_copy( VigImage src, VigImage dst );
-/// copy image part
-bool vig_image_copy_part( VigPart src, VigImage dst, VigCoord dLeft, VigCoord dTop );
    
 /// extract plane from image
 bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst );
@@ -92,11 +90,16 @@ bool vig_image_transform( VigImage src, VigImage dst, VigTransform trans );
 bool vig_image_add( VigImage src, VigValue pixel, VigImage dst );
 /// difference of two images
 bool vig_image_diff( VigImage a, VigImage b, VigImage dst );
-/// sum of difference
-bool vig_image_diffsum( VigPart a, VigImage b,
-   VigCoord bLeft, VigCoord bTop, uint64_t * diff );
 /// average pixel
 bool vig_image_avg( VigImage img, VigValue * pix );
+
+/// copy image part
+bool vig_part_copy( VigPart prt, VigImage dst, VigCoord dLeft, VigCoord dTop );
+/// sum of difference
+bool vig_part_diffsum( VigPart prt, VigImage b,
+   VigCoord bLeft, VigCoord bTop, uint64_t * diff );
+/// fill with value
+bool vig_part_fill( VigPart prt, VigValue pix );
 
 /// create "pyramid" of an image: /2, /4, ... scaled images
 bool vig_pyr_create( VigImage img, VigImage pyr );

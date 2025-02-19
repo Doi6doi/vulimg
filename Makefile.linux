@@ -4,7 +4,7 @@ DIRS=$(VULCMPDIR) $(VULTOOLSDIR)
 
 GLSLIS=copy1 copy32 join3 plane3 trans diff dsum add8
 GLSLPS=pyr delta8
-GLSLDS=rect  
+GLSLDS=rect fill
 GLSLWS=white8 wcloud8
 
 GLSLS=$(GLSLSIS) $(GLSLWS) $(GLSPS) $(GLSLSDS)

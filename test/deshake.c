@@ -92,8 +92,24 @@ VigCoord height() {
    return vig_image_height( data.out );
 }
 
+
+void wri( VigImage img, VcpStr fname ) {
+   FILE * fh = fopen( fname, "w" );
+   vig_bmp_write( img, fh, vtl_fwrite );
+   fclose(fh);
+}
+
+void fill( VigPart prt, int cx, int cy, uint32_t v ) {
+   prt->img = data.out;
+   prt->left = cx;
+   prt->top = cy;
+   vig_part_fill( prt, v );
+}
+
 /// kép összeállítása
 void compose( int i, int u ) {
+static int gq=0;
+++gq;   
    // összegzett elmozdulás
    int sx=0, sy=0;
    for (int j=i; u<=j; --j) {
@@ -102,7 +118,6 @@ void compose( int i, int u ) {
    }
    int ex = sx / (i-u);
    int ey = sy / (i-u);
-vtl_ewrite("ex:%d ey:%d", ex, ey );   
    Delta di = data.ds+i;
    if ( 0 == ex && 0 == ey ) {
       vig_image_copy( data.imgs[i], data.out );
@@ -117,6 +132,7 @@ vtl_ewrite("ex:%d ey:%d", ex, ey );
    // új kép
    struct VigPart r = { .img=data.imgs[i], .left = 0, .top = 0, 
       .width = width()-ax, .height = height()-ay };
+   int hx=ax, hy=ay;
    struct VigPart q = { .img=data.prev, .left = bx, .top = by, 
       .width = ax, .height = height()-ay };
 //   struct VigPart q = { .img=data.prev, .left = bx, .top = by, 
@@ -124,23 +140,45 @@ vtl_ewrite("ex:%d ey:%d", ex, ey );
    int cx = 0, cy = 0;
    if ( 0 < fx ) {
       r.left = ax;
-      ax = 0;
+      hx = 0;
       q.left = width()-ax-bx;
       cx = width()-ax;
    }
    if ( 0 < fy ) {
       r.top = ay;
-      ay = 0;
+      hy = 0;
+      q.top = 0;
+      cy = by;
+   }
+   vig_part_copy( &r, data.out, hx, hy );
+   // előző kocka függőleges rész
+   vig_part_copy( &q, data.out, cx, cy );
+//   fill( &q, cx, cy, 0 );
+
+vtl_ewrite("gq:%d dx:%d dy:%d ex:%d ey:%d fx:%d xy:%d bx:%d by:%d", gq, di->dx, di->dy, ex, ey, fx, fy, bx, by );   
+vtl_ewrite("V: qt:%d ql:%d qw:%d qh:%d cx:%d cy:%d", q.top, q.left, q.width, q.height, cx, cy );
+   // előző kocka vízszintes rész
+   q.width = width()-ax;
+   q.height = ay;
+   cx = cy = 0;
+   q.left = bx;
+   q.top = by;
+   if ( 0 < fx ) {
+      q.left = 0;
+      cx = bx;
+   }
+   if ( 0 < fy ) {
       q.top = height()-ay-by;
       cy = height()-ay;
    }
-   vig_image_copy_part( &r, data.out, ax, ay );
-   // előző kocka függőleges rész
-   vig_image_copy_part( &q, data.out, cx, cy );
-   // előző kocka vízszintes rész
-   r.width = width()-ax;
-   r.height = ay;
-   vig_image_copy_part( &q, data.out, cx, cy );
+   vig_part_copy( &q, data.out, cx, cy );
+//    fill( &q, cx, cy, 0 );
+vtl_ewrite("H: qt:%d ql:%d qw:%d qh:%d cx:%d cy:%d", q.top, q.left, q.width, q.height, cx, cy );
+if ( 167 == gq ) {
+   wri( data.imgs[i], "o1.bmp" );
+   wri( data.prev, "o2.bmp" );
+   wri( data.out, "o3.bmp" );
+}
    if ( 0 < i ) {
       data.ds[i-1].dx += fx;
       data.ds[i-1].dy += fy;

@@ -97,6 +97,7 @@ bool vig_init( VcpVulcomp v ) {
    vulimg.rect = NULL;
    vulimg.wcloud8 = NULL;
    vulimg.delta8 = NULL;
+   vulimg.fill = NULL;
    vulimg.started = true;
    return true;
 }
@@ -237,7 +238,7 @@ bool vig_pixel_signed( VigPixel pix ) {
    }
 }
 
-bool vig_image_copy_part( VigPart prt, VigImage dst, 
+bool vig_part_copy( VigPart prt, VigImage dst, 
    VigCoord dstLeft, VigCoord dstTop ) 
 {
    if ( ! vig_inited() ) return false;
@@ -378,6 +379,8 @@ void vig_done() {
    vig_done_task( & vulimg.wcloud8 );
    vig_done_task( & vulimg.pyr );
    vig_done_task( & vulimg.delta8 );
+   vig_done_task( & vulimg.rect );
+   vig_done_task( & vulimg.fill );
    vulimg.started = false;
 }
 
@@ -658,7 +661,7 @@ bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad ) {
    return true;
 }
 
-bool vig_image_diffsum( VigPart ap, VigImage b, 
+bool vig_part_diffsum( VigPart ap, VigImage b, 
    VigCoord bx, VigCoord by, uint64_t * diff ) 
 {
    if ( ! vig_inited() ) return false;
@@ -768,20 +771,6 @@ bool vig_image_add( VigImage src, VigValue pixel, VigImage dst ) {
    return vig_run( t );
 }
 
-/*static void cdraw8( VigImage img, VtlRect rect, VigValue pixel ) {
-   if ( 8 != vig_pixel_size( img->pixel )) return;
-   uint8_t * p = vig_image_address( img );
-   uint32_t s = vig_image_stride( img );
-   for ( int y = 0; y < rect->height; ++y ) {
-      p[ (rect->top+y)*s + rect->left ] = pixel;
-      p[ (rect->top+y)*s + rect->left + rect->width-1 ] = pixel;
-   }
-   for ( int x = 0; x < rect->width; ++x ) {
-      p[ rect->top*s + rect->left+x ] = pixel;
-      p[ (rect->top+rect->height-1)*s + rect->left+x ] = pixel;
-   }
-}   
-*/
 
 
 
