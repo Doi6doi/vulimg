@@ -2,13 +2,15 @@
 #define VULIMGH
 
 #include <vulcmp.h>
-#include <vultools.h>
+#include <vytools.h>
+
+VYT_CBEGIN()
  
 /// image x or y coordinate
-typedef uint32_t VigCoord;
+typedef VytU VigCoord;
 
 /// pixel value (all components)
-typedef uint32_t VigValue;
+typedef VytU VigValue;
 
 /// pixel kind
 typedef enum VigPixel { vix_Unknown, vix_1, vix_8, vix_g8, vix_s8, 
@@ -17,26 +19,18 @@ typedef enum VigPixel { vix_Unknown, vix_1, vix_8, vix_g8, vix_s8,
 /// one image plane   
 typedef enum VigPlane { vpl_Unknown, vpl_R, vpl_G, vpl_B, vpl_Y, vpl_Cb, vpl_Cr } VigPlane;
 
+/// gpu image system
+typedef struct Vig_Vulimg * VigVulimg;
+
 /// gpu stored image
-typedef struct VigImage * VigImage;
+typedef struct Vig_Image * VigImage;
 
-/// rectangular part of image
-typedef struct VigPart {
-   VigImage img;
-   VigCoord left;
-   VigCoord top;
-   VigCoord width;
-   VigCoord height;
-} * VigPart;
-
-/// affine transformation
-typedef struct VigTransform {
-   float sx, ry, rx, sy, dx, dy;
-} * VigTransform;
+/// transformation
+typedef VytFTrans2 VigTrans;
 
 #define VIG_SUCCESS    VCP_SUCCESS
 #define VIG_HOSTMEM    VCP_HOSTMEM
-#define VIG_STREAMERR  VTL_STREAMERR
+#define VIG_STREAMERR  VYT_STREAMERR
 #define VIG_INITERR    -11001
 #define VIG_STORAGEERR -11002
 #define VIG_COORDERR   -11003
@@ -85,7 +79,7 @@ bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst );
 /// add a plane to image
 bool vig_image_join( VigImage dst, VigImage src, VigPlane plane );
 /// transform image
-bool vig_image_transform( VigImage src, VigImage dst, VigTransform trans );
+bool vig_image_transform( VigImage src, VigImage dst, VigTrans trans );
 /// add image pixel values
 bool vig_image_add( VigImage src, VigValue pixel, VigImage dst );
 /// difference of two images
@@ -94,12 +88,12 @@ bool vig_image_diff( VigImage a, VigImage b, VigImage dst );
 bool vig_image_avg( VigImage img, VigValue * pix );
 
 /// copy image part
-bool vig_part_copy( VigPart prt, VigImage dst, VigCoord dLeft, VigCoord dTop );
+bool vig_part_copy( VigImage img, VytURect prt, VigImage dst, VytUVec2 loc );
 /// sum of difference
-bool vig_part_diffsum( VigPart prt, VigImage b,
-   VigCoord bLeft, VigCoord bTop, uint64_t * diff );
+bool vig_part_diffsum( VigImage img, VytURect prt, VigImage b,
+   VytUVec2 loc, VytZ * diff );
 /// fill with value
-bool vig_part_fill( VigPart prt, VigValue pix );
+bool vig_part_fill( VigImage img, VytURect prt, VigValue pix );
 
 /// create "pyramid" of an image: /2, /4, ... scaled images
 bool vig_pyr_create( VigImage img, VigImage pyr );
@@ -110,27 +104,29 @@ bool vig_pyr_delta( VigImage a, VigImage b, VigImage pyra, VigImage pyrb,
 /// get rects of interest
 bool vig_white_rects( VigImage img, float limit, 
    float density, uint32_t minSize, uint32_t maxDist, 
-   VtlRect rects, uint32_t * count );
+   VytURect rects, uint32_t * count );
 /// get clouds of interest
 bool vig_white_clouds( VigImage img, float maxDist,
    VtlCloud clouds, uint32_t * count );	
    
 /// draw rectangle
-bool vig_draw_rect( VigPart part, VigValue pixel );
+bool vig_draw_rect( VigImage img, VytURect part, VigValue pixel );
 /// draw cloud
 bool vig_draw_cloud( VigImage img, VtlCloud cloud, VigValue pixel );
 
 /// reads raw image
-bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad );
+bool vig_raw_read( VigImage img, void * stream, VytStreamOp read, bool pad );
 /// writes raw image
-bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad );
+bool vig_raw_write( VigImage img, void * stream, VytStreamOp write, bool pad );
 
 /// reads bmp
-VigImage vig_bmp_read( void * stream, VtlStreamOp read );
+VigImage vig_bmp_read( void * stream, VytStreamOp read );
 /// write bmp
-bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write );
+bool vig_bmp_write( VigImage img, void * stream, VytStreamOp write );
 
 void vig_drawallrects( VigImage img, uint32_t n );
-void vig_drawallclouds( VigImage img, uint32_t n );
+// void vig_drawallclouds( VigImage img, uint32_t n );
+
+VYT_CEND()
 
 #endif // VULIMGH

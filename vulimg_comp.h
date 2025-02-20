@@ -24,46 +24,36 @@
 #define EMPTY 0xfffffffe
 #define DIDX 12
 
-#ifdef VULKAN
-
-struct VtlRect {
-   INT left;
-   INT top;
-   UINT width;
-   UINT height;
-};
-
-#endif
-
-struct VigRect {
+struct Vig_Rect {
    UINT id;
    UINT link;
    UINT weight;
    UINT left, top, width, height;
 };
 
-struct VigCloud {
+struct Vig_Cloud {
    UINT id;
    UINT link;
    UINT weight;
    FLOAT mx, my, dx, dy;
 };
 
-struct VigImgParam {
+struct Vig_ImgParam {
    UINT width;
    UINT height;
    UINT stride;
 };
 
 #ifdef VULKAN
-struct VigTransform {
+
+struct Vyt_FTrans2 {
    FLOAT sx, ry, rx, sy, dx, dy;
 };
 #endif
 
-struct VigCopyParams {
-   STRUCT VigImgParam src;
-   STRUCT VigImgParam dst;
+struct Vig_CopyParams {
+   STRUCT Vig_ImgParam src;
+   STRUCT Vig_ImgParam dst;
    UINT sleft;
    UINT stop;
    UINT width;
@@ -72,17 +62,17 @@ struct VigCopyParams {
    UINT dtop;
 };
 
-struct VigTransParams {
-   STRUCT VigImgParam src;
-   STRUCT VigImgParam dst;
-   STRUCT VigTransform trans;
+struct Vig_TransParams {
+   STRUCT Vig_ImgParam src;
+   STRUCT Vig_ImgParam dst;
+   STRUCT Vyt_FTrans2 trans;
    INT compBits;
    INT compCount;
 };
 
-struct VigPyrParams {
-   STRUCT VigImgParam src;
-   STRUCT VigImgParam dst;
+struct Vig_PyrParams {
+   STRUCT Vig_ImgParam src;
+   STRUCT Vig_ImgParam dst;
    INT compBits;
    INT compCount;
    UINT width;
@@ -90,8 +80,8 @@ struct VigPyrParams {
    UINT row;
 };
 
-struct VigWhiteParams {
-   STRUCT VigImgParam img;
+struct Vig_WhiteParams {
+   STRUCT Vig_ImgParam img;
    FLOAT limit;
    FLOAT density;
    UINT minSize;
@@ -99,13 +89,13 @@ struct VigWhiteParams {
    UINT phase;
 };
 
-struct VigWCloudParams {
-   STRUCT VigImgParam img;
+struct Vig_WCloudParams {
+   STRUCT Vig_ImgParam img;
    FLOAT maxDist;
    UINT phase;
 };
 
-struct VigJoinParams {
+struct Vig_JoinParams {
    UINT width;
    UINT height;
    UINT srcstride;
@@ -113,7 +103,7 @@ struct VigJoinParams {
    UINT index;
 };
 
-struct VigDSumParams {
+struct Vig_DSumParams {
    UINT mode;
    UINT astride;
    UINT bstride;
@@ -125,16 +115,16 @@ struct VigDSumParams {
    UINT height;
 };
 
-struct VigAddParams {
-   STRUCT VigImgParam img;
+struct Vig_AddParams {
+   STRUCT Vig_ImgParam img;
    UINT compCount;
    UINT pixel;
    INT min;
    INT max;
 };
 
-struct VigRectParams {
-   STRUCT VigImgParam img;
+struct Vig_RectParams {
+   STRUCT Vig_ImgParam img;
    UINT left;
    UINT top;
    UINT width;
@@ -143,8 +133,8 @@ struct VigRectParams {
    UINT pixVal;
 };
    
-struct VigDeltaParams {
-   STRUCT VigImgParam img;
+struct Vig_DeltaParams {
+   STRUCT Vig_ImgParam img;
    UINT comps;
    UINT top;
    INT dx;

@@ -1,6 +1,6 @@
 #TESTS=basic mini diff pyr rects foltok
-ALLTESTS=basic mini diff pyr rects foltok delt deshake
-TESTS=deshake
+ALLTESTS=basic basicp mini diff pyr rects foltok delt deshake
+TESTS=basicp
 # TESTS=foltok
 TEMPS=smiley.raw smiley2.bmp
 
@@ -21,16 +21,20 @@ VPIX=rgb24
 # FPIX=gray8
 # VPIX=g8
 
-LIBS=vulcmp vultools vulimg
+LIBS=vulcmp vytools vulimg
+PLIBS=vulcmp vulimg vulimgp vytools vytoolsp
 INCDIR=$(LIBS:%=../../%)
 LIBDIR=$(INCDIR)
 
 RM=rm -f
 CC=gcc -g
+CPP=g++ -g
 SPACE=$(eval) $(eval)
 
 CFL=$(INCDIR:%=-I%) $(LIBDIR:%=-L%)
+CPFL=$(INCDIR:%=-I%) $(LIBDIR:%=-L%)
 LFL=$(LIBS:%=-l%)
+LPFL=$(PLIBS:%=-l%)
 RFL=LD_LIBRARY_PATH=$(subst $(SPACE),:,$(LIBDIR))
 
 test: $(TESTS:=.run)
@@ -43,6 +47,9 @@ mini.elf: mini.c
 
 basic.elf: basic.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)
+
+basicp.elf: basicp.cpp
+	$(CPP) $(CPFL) -o $@ $^ $(LPFL)
 
 foltok.elf: foltok.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)
@@ -79,13 +86,8 @@ deshake.run: deshake.elf
 #	| $(FFPLAY) - -f rawvideo -video_size $(WIDTH)x$(HEIGHT) -pixel_format $(FPIX)
 #	| $(FFMPEG) -f rawvideo -pix_fmt $(FPIX) -s $(WIDTH)x$(HEIGHT) -i - -c:v libx264 $(OUT)
 
-
-
 delt.elf: delt.c
 	$(CC) $(CFL) -o $@ $^ $(LFL)
-
-delt.run: delt.elf
-	$(RFL) ./$<
 
 #	| $(RFL) ./$< -w $(WIDTH) -h $(HEIGHT) -p $(VPIX) -n 10 \
 

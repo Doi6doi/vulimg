@@ -2,19 +2,19 @@
 
 #pragma pack(push,1)
 
-typedef struct VigDiffParams {
-   struct VigImgParam img;
+typedef struct Vig_DiffParams {
+   struct Vig_ImgParam img;
    int32_t compBits;
 } * VigDiffParams;
 
-typedef struct VigBmpFileHeader {
+typedef struct Vig_BmpFileHeader {
    uint16_t magic;
    uint32_t size;
    uint32_t reserved;
    uint32_t address;
 } * VigBmpFileHeader;
 
-typedef struct VigBmpInfoHeader {
+typedef struct Vig_BmpInfoHeader {
    uint32_t size;
    uint32_t width;
    uint32_t height;
@@ -30,7 +30,7 @@ typedef struct VigBmpInfoHeader {
 
 #pragma pack(pop)
  
-struct VigVulimg vulimg = { .started=false };
+struct Vig_Vulimg vulimg = { .started=false };
 
 int vigResult = VIG_SUCCESS;
 
@@ -63,8 +63,8 @@ bool vig_run( VcpTask t ) {
    if (( vigResult = vcp_error() )) return false;
    vigResult = VIG_SUCCESS;
    return true;
-}
-
+} 
+    
 bool vig_init( VcpVulcomp v ) {
    vigResult = VIG_SUCCESS;
    if ( vulimg.started ) {
@@ -166,7 +166,7 @@ uint32_t vig_pixel_comps( VigPixel pix ) {
 
 VigImage vig_image_create( VigCoord width, VigCoord height, VigPixel pixel ) {
    vigResult = VIG_HOSTMEM;
-   VigImage ret = REALLOC( NULL, struct VigImage, 1 );
+   VigImage ret = REALLOC( NULL, struct Vig_Image, 1 );
    if ( ! ret ) return NULL;
    ret->pixel = pixel;
    ret->width = width;
@@ -185,12 +185,12 @@ VigImage vig_image_create( VigCoord width, VigCoord height, VigPixel pixel ) {
    return ret;
 }
 
-TASK( copy1, 2, struct VigCopyParams );
-TASK( trans, 2, struct VigTransParams );
-TASK( diff, 3, struct VigDiffParams );
-TASK( dsum, 3, struct VigDSumParams );
-TASK( add8, 2, struct VigAddParams );
-TASK( copy32, 2, struct VigCopyParams );
+TASK( copy1, 2, struct Vig_CopyParams );
+TASK( trans, 2, struct Vig_TransParams );
+TASK( diff, 3, struct Vig_DiffParams );
+TASK( dsum, 3, struct Vig_DSumParams );
+TASK( add8, 2, struct Vig_AddParams );
+TASK( copy32, 2, struct Vig_CopyParams );
 
 /// task for copy
 static VcpTask vig_copy_task( VigCopyParams pars, VigPixel pix,
@@ -238,34 +238,34 @@ bool vig_pixel_signed( VigPixel pix ) {
    }
 }
 
-bool vig_part_copy( VigPart prt, VigImage dst, 
-   VigCoord dstLeft, VigCoord dstTop ) 
+bool vig_part_copy( VigImage src, VytURect prt, VigImage dst, 
+   VytUVec2 loc ) 
 {
    if ( ! vig_inited() ) return false;
    vigResult = VIG_PIXELERR;
-   if ( ! vig_pixel_same( prt->img->pixel, dst->pixel )) return false;
+   if ( ! vig_pixel_same( src->pixel, dst->pixel )) return false;
    vigResult = VIG_SUCCESS;
    if ( 0 == prt->width || 0 == prt->height ) return true;
 	vigResult = VIG_COORDERR;
    uint32_t rw = prt->width;
    uint32_t rh = prt->height;
-   if ( prt->img->width < prt->left + rw ) return false;
-   if ( prt->img->height < prt->top + rh ) return false;
-   if ( dst->width < dstLeft + rw ) return false;
-   if ( dst->height < dstTop + rh ) return false;
-	struct VigCopyParams pars;
-   vig_imgpar( prt->img, &pars.src );
+   if ( src->width < prt->left + rw ) return false;
+   if ( src->height < prt->top + rh ) return false;
+   if ( dst->width < loc->x + rw ) return false;
+   if ( dst->height < loc->y + rh ) return false;
+	struct Vig_CopyParams pars;
+   vig_imgpar( src, &pars.src );
    vig_imgpar( dst, &pars.dst );
    pars.sleft = prt->left;
    pars.stop = prt->top;
    pars.width = prt->width;
    pars.height = prt->height;
-   pars.dleft = dstLeft;
-   pars.dtop = dstTop;
+   pars.dleft = loc->x;
+   pars.dtop = loc->y;
    uint32_t nx;
    VcpTask t = vig_copy_task( & pars, dst->pixel, &nx );
    if ( ! t ) return false;
-	VcpStorage ss[2] = { prt->img->stor, dst->stor };
+	VcpStorage ss[2] = { src->stor, dst->stor };
    uint32_t ny = DIVC( pars.height, UGR );
 	vcp_task_setup( t, ss, nx, ny, 1, & pars );
 	return vig_run( t );
@@ -283,7 +283,7 @@ bool vig_image_copy( VigImage src, VigImage dst ) {
    return vcp_storage_copy( src->stor, dst->stor, 0, 0, s*h );
 }
 
-static bool vig_inv_transform( VigTransform src, VigTransform dst ) {
+static bool vig_inv_transform( VigTrans src, VigTrans dst ) {
    float a=src->sx, b=src->ry, c=src->rx, d=src->sy, e=src->dx, f=src->dy;
    float det = a*d - b*c;
    if ( 0 == det ) return false;
@@ -296,14 +296,14 @@ static bool vig_inv_transform( VigTransform src, VigTransform dst ) {
    return true;
 }
 
-bool vig_image_transform( VigImage src, VigImage dst, VigTransform trans ) {
+bool vig_image_transform( VigImage src, VigImage dst, VigTrans trans ) {
    if ( ! vig_inited() ) return false;
    vigResult = VIG_PIXELERR;
    if ( ! vig_pixel_same( src->pixel, dst->pixel )) return false;
    if ( vig_pixel_signed( src->pixel )) return false;
    vigResult = VIG_COORDERR;
    if ( src == dst ) return false;
-	struct VigTransParams pars;
+	struct Vig_TransParams pars;
    vig_imgpar( src, & pars.src );
    vig_imgpar( dst, & pars.dst );
    if ( ! vig_inv_transform( trans, & pars.trans )) return false;
@@ -330,7 +330,7 @@ bool vig_image_diff( VigImage a, VigImage b, VigImage dst ) {
    if ( h != vig_image_height(b) || h != vig_image_height(dst) ) return false;
    if ( a == dst || b == dst ) return false;
    uint32_t nx = DIVC( dst->width * vig_pixel_size( dst->pixel ), 32*UGR );
-   struct VigDiffParams pars;
+   struct Vig_DiffParams pars;
    vig_imgpar( a, & pars.img );
    pars.compBits = vig_pixel_size( dst->pixel ) / vig_pixel_comps( dst->pixel );
    VcpTask t = vig_diff();
@@ -364,9 +364,9 @@ void vig_done() {
    for (int i=vulimg.nimg-1; 0 <= i; --i)
       vig_image_free( vulimg.imgs[i] );
    vulimg.imgs = REALLOC( vulimg.imgs, VigImage, 0 );
-   vulimg.pyrs = REALLOC( vulimg.pyrs, struct VigPyrParams, 0 );
-   vulimg.whites = REALLOC( vulimg.whites, struct VigWhiteParams, 0 );
-   vulimg.wclouds = REALLOC( vulimg.wclouds, struct VigWCloudParams, 0 );
+   vulimg.pyrs = REALLOC( vulimg.pyrs, struct Vig_PyrParams, 0 );
+   vulimg.whites = REALLOC( vulimg.whites, struct Vig_WhiteParams, 0 );
+   vulimg.wclouds = REALLOC( vulimg.wclouds, struct Vig_WCloudParams, 0 );
    vig_done_task( & vulimg.copy1 );
    vig_done_task( & vulimg.copy32 );
    vig_done_task( & vulimg.join3 );
@@ -384,8 +384,8 @@ void vig_done() {
    vulimg.started = false;
 }
 
-TASK( join3, 2, struct VigJoinParams );
-TASK( plane3, 2, struct VigJoinParams );
+TASK( join3, 2, struct Vig_JoinParams );
+TASK( plane3, 2, struct Vig_JoinParams );
 
 /// task for join
 static VcpTask vig_join_task( VigPixel dpix, VigPixel spix, 
@@ -463,7 +463,7 @@ bool vig_image_join( VigImage dst, VigImage src, VigPlane plane ) {
    vigResult = VIG_COORDERR;
    if ( src->width < dst->width || src->height < dst->height )
       return false;
-   struct VigJoinParams pars = {
+   struct Vig_JoinParams pars = {
 	  .width = src->width,
 	  .height = src->height,
 	  .srcstride = vig_image_stride( src ),
@@ -482,7 +482,7 @@ bool vig_image_join( VigImage dst, VigImage src, VigPlane plane ) {
 
 bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst ) {
    if ( ! vig_inited() ) return false;
-   struct VigJoinParams pars = {
+   struct Vig_JoinParams pars = {
 	  .width = MIN( src->width, dst->width ),
 	  .height = MIN( src->height, dst->height ),
 	  .srcstride = vig_image_stride( src ),
@@ -517,7 +517,7 @@ void vig_image_free( VigImage img ) {
 	  }
    }
    vcp_storage_free( img->stor );
-   img = REALLOC( img, struct VigImage, 0 );
+   img = REALLOC( img, struct Vig_Image, 0 );
 }
 
 /// bmp formátum pixele
@@ -542,7 +542,7 @@ static int vig_pixel_bmpbits( VigPixel pix ) {
    }
 }
 
-static bool vig_bmp_write_pal8( void * stream, VtlStreamOp write ) {
+static bool vig_bmp_write_pal8( void * stream, VytStreamOp write ) {
    static bool first = true;
    static uint32_t cols[256];
    if ( first ) {
@@ -550,28 +550,29 @@ static bool vig_bmp_write_pal8( void * stream, VtlStreamOp write ) {
          cols[i] = i << 16 | i << 8 | i;
       first = false;
    } 
-   return vtl_write_block( stream, write, cols, 256*4 );
+   return vyt_write_block( stream, write, cols, 256*4 );
 }
 
 
-bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write ) {
+bool vig_bmp_write( VigImage img, void * stream, VytStreamOp write ) {
    if ( ! vig_inited() ) return false;
    if ( ! vig_isimage( img )) return false;
    int bits = vig_pixel_bmpbits( img->pixel );
    if ( 0 > bits ) return false;
-   uint32_t hsz = sizeof( struct VigBmpFileHeader )+sizeof( struct VigBmpInfoHeader );
+   uint32_t hsz = sizeof( struct Vig_BmpFileHeader )
+      +sizeof( struct Vig_BmpInfoHeader );
    uint32_t psz = 8 == bits ? 256*4 : 0;
    uint32_t isz = vig_image_stride(img) * img->height;
-   struct VigBmpFileHeader bfh = {
+   struct Vig_BmpFileHeader bfh = {
       .magic = VT_L16( 0x4d42 ),
       .size = VT_L32( hsz + psz + isz ),
       .reserved = 0,
       .address = VT_L32( hsz + psz )
    };
    vigResult = VIG_STREAMERR;
-   if ( ! vtl_write_block( stream, write, &bfh, sizeof(bfh))) return false;
-   struct VigBmpInfoHeader bih = {
-	  .size = VT_L32( sizeof( struct VigBmpInfoHeader )),
+   if ( ! vyt_write_block( stream, write, &bfh, sizeof(bfh))) return false;
+   struct Vig_BmpInfoHeader bih = {
+	  .size = VT_L32( sizeof( struct Vig_BmpInfoHeader )),
 	  .width = VT_L32( img->width ),
 	  .height = VT_L32( img->height ),
 	  .planes = VT_L16( 1 ),
@@ -583,25 +584,25 @@ bool vig_bmp_write( VigImage img, void * stream, VtlStreamOp write ) {
 	  .colors = 0,
 	  .impcols = 0
    };
-   if ( ! vtl_write_block( stream, write, &bih, sizeof(bih))) return false;
+   if ( ! vyt_write_block( stream, write, &bih, sizeof(bih))) return false;
    if ( 0 < psz && ! vig_bmp_write_pal8( stream, write )) return false;
    char * data = vig_image_address( img );
    int stride = vig_image_stride(img);
    for (int r=img->height-1; 0 <=r; --r) {
-      if ( ! vtl_write_block( stream, write, data+r*stride, stride )) return false;
+      if ( ! vyt_write_block( stream, write, data+r*stride, stride )) return false;
    }
    vigResult = VIG_SUCCESS;
    return true;
 }
 
 
-VigImage vig_bmp_read( void * stream, VtlStreamOp read ) {
+VigImage vig_bmp_read( void * stream, VytStreamOp read ) {
    vigResult = VIG_BMPERR;
-   struct VigBmpFileHeader bfh;
-   if ( ! vtl_read_block( stream, read, &bfh, sizeof(bfh))) return false;
+   struct Vig_BmpFileHeader bfh;
+   if ( ! vyt_read_block( stream, read, &bfh, sizeof(bfh))) return false;
    if ( 0x4d42 != bfh.magic ) return NULL;
-   struct VigBmpInfoHeader bih;
-   if ( ! vtl_read_block( stream, read, &bih, sizeof(bih))) return false;
+   struct Vig_BmpInfoHeader bih;
+   if ( ! vyt_read_block( stream, read, &bih, sizeof(bih))) return false;
    if ( sizeof(bih) > bih.size ) return NULL;
    if ( 1 != bih.planes ) return NULL;
    switch (bih.compression) {
@@ -612,19 +613,19 @@ VigImage vig_bmp_read( void * stream, VtlStreamOp read ) {
    if ( vix_Unknown == pix ) return NULL;
    int rest = bfh.address - (sizeof(bfh)+sizeof(bih));
    if ( 0 > rest ) return NULL;
-   if ( ! vtl_read_skip( stream, read, rest )) return NULL;
+   if ( ! vyt_read_skip( stream, read, rest )) return NULL;
    VigImage ret = vig_image_create( bih.width, bih.height, pix );
    if ( ! ret ) return NULL;
    int stride = vig_image_stride(ret);
    char * data = vig_image_address(ret);
    for (int r=ret->height-1; 0 <=r; --r) {
-      if ( ! vtl_read_block( stream, read, data+r*stride, stride )) return false;
+      if ( ! vyt_read_block( stream, read, data+r*stride, stride )) return false;
    }
    vigResult = VIG_SUCCESS;
    return ret;
 }
 
-bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad ) {
+bool vig_raw_read( VigImage img, void * stream, VytStreamOp read, bool pad ) {
    char * data = vig_image_address( img );
    if ( ! data ) return false;
    int width = img->width;
@@ -633,17 +634,17 @@ bool vig_raw_read( VigImage img, void * stream, VtlStreamOp read, bool pad ) {
    int wps = width * vig_pixel_size( img->pixel );
    vigResult = VIG_SUCCESS;
    if ( pad || wps == stride * 8 )
-      return vtl_read_block( stream, read, data, height * stride );
+      return vyt_read_block( stream, read, data, height * stride );
    int w = DIVC( wps, 8 );
    for (int r=img->height; 0 < r; --r) {
-      if ( ! vtl_read_block( stream, read, data, w ))
+      if ( ! vyt_read_block( stream, read, data, w ))
          return false;
       data += stride;
    }
    return true;
 }
 
-bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad ) {
+bool vig_raw_write( VigImage img, void * stream, VytStreamOp write, bool pad ) {
    char * data = vig_image_address( img );
    if ( ! data ) return false;
    int width = img->width;
@@ -651,45 +652,45 @@ bool vig_raw_write( VigImage img, void * stream, VtlStreamOp write, bool pad ) {
    int stride = vig_image_stride( img );
    int wps = width * vig_pixel_size( img->pixel );
    if ( pad || wps == stride * 8 )
-      return vtl_write_block( stream, write, data, height * stride );
+      return vyt_write_block( stream, write, data, height * stride );
    int w = DIVC( wps, 8 );
    for (int r=height; 0 < r; --r) {
-      if ( ! vtl_write_block( stream, write, data, w ))
+      if ( ! vyt_write_block( stream, write, data, w ))
          return false;
       data += stride;
-   }
+   } 
    return true;
 }
 
-bool vig_part_diffsum( VigPart ap, VigImage b, 
-   VigCoord bx, VigCoord by, uint64_t * diff ) 
+bool vig_part_diffsum( VigImage a, VytURect prt, VigImage b, 
+   VytUVec2 loc, uint64_t * diff ) 
 {
    if ( ! vig_inited() ) return false;
    vigResult = VIG_PIXELERR;
-   if ( ! vig_pixel_same( ap->img->pixel, b->pixel )) return false;
+   if ( ! vig_pixel_same( a->pixel, b->pixel )) return false;
    uint32_t comps = vig_pixel_comps( b->pixel );
    if ( 8 != vig_pixel_size( b->pixel ) / comps ) return false;
    vigResult = VIG_COORDERR;
-   if ( ap->img->width < ap->left + ap->width ) return false;
-   if ( ap->img->height < ap->top + ap->height ) return false;
-   if ( b->width < bx + ap->width ) return false;
-   if ( b->height < by + ap->height ) return false;
+   if ( a->width < prt->left + prt->width ) return false;
+   if ( a->height < prt->top + prt->height ) return false;
+   if ( b->width < loc->x + prt->width ) return false;
+   if ( b->height < loc->y + prt->height ) return false;
    bool sgn = vig_pixel_signed( b->pixel );
-   struct VigDSumParams pars = {
+   struct Vig_DSumParams pars = {
 	   .mode = sgn ? 4 : 3,
-	   .astride = ap->img->stride,
+	   .astride = a->stride,
 	   .bstride = b->stride,
-	   .aleft = ap->left * comps,
-	   .atop = ap->top,
-	   .bleft = bx * comps,
-	   .btop = by,
-	   .width = ap->width * comps,
-	   .height = ap->height
+	   .aleft = prt->left * comps,
+	   .atop = prt->top,
+	   .bleft = loc->x * comps,
+	   .btop = loc->y,
+	   .width = prt->width * comps,
+	   .height = prt->height
    };
    if ( ! vig_temp_grow( pars.width*4 )) return false;
    VcpTask t = vig_dsum();
    if ( ! t ) return false;
-   VcpStorage ss[3] = { ap->img->stor, b->stor, vulimg.temp };
+   VcpStorage ss[3] = { a->stor, b->stor, vulimg.temp };
    vcp_task_setup( t, ss, DIVC( pars.width, UGR ), 1, 1, & pars );
    if ( ! vig_run( t )) return false;
    uint32_t * p = vcp_storage_address( vulimg.temp );
@@ -706,7 +707,7 @@ bool vig_image_avg( VigImage img, VigValue * pix ) {
    bool sgn = vig_pixel_signed( img->pixel );
    uint32_t comps = vig_pixel_comps( img->pixel );
    if ( 8 != vig_pixel_size( img->pixel ) / comps ) return false;
-   struct VigDSumParams pars = {
+   struct Vig_DSumParams pars = {
 	   .mode = sgn ? 2 : 1,
 	   .astride = img->stride,
 	   .bstride = 0,
@@ -754,7 +755,7 @@ bool vig_image_add( VigImage src, VigValue pixel, VigImage dst ) {
    vigResult = VIG_COORDERR;
    if ( src->width != dst->width ) return false;
    if ( src->height != dst->height ) return false;
-   struct VigAddParams pars = {
+   struct Vig_AddParams pars = {
 	  .compCount = compCount, 
       .min = sgn ? -128 : 0,
       .max = sgn ? 127 : 255,

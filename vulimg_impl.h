@@ -1,11 +1,10 @@
 #ifndef VULIMG_IMPLH
 #define VULIMG_IMPLH
-
+ 
 #include "vulimg.h"
-#include <vultools.h>
 #include "vulimg_comp.h"
 #include <stdlib.h>
-#include <stdio.h>
+#include <stdio.h> 
 #include <string.h>
 
 #define REALLOC( p, type, n ) (type *)realloc( p, (n)*sizeof(type) )
@@ -26,16 +25,16 @@
       return vulimg.name; \
    } 
 
-typedef struct VigImgParam * VigImgParam;
-typedef struct VigRect * VigRect;
-typedef struct VigCloud * VigCloud;
-typedef struct VigCopyParams * VigCopyParams;
-typedef struct VigJoinParams * VigJoinParams;
-typedef struct VigPyrParams * VigPyrParams;
-typedef struct VigWhiteParams * VigWhiteParams;
-typedef struct VigWCloudParams * VigWCloudParams;
+typedef struct Vig_ImgParam * VigImgParam;
+typedef struct Vig_Rect * VigRect;
+typedef struct Vig_Cloud * VigCloud;
+typedef struct Vig_CopyParams * VigCopyParams;
+typedef struct Vig_JoinParams * VigJoinParams;
+typedef struct Vig_PyrParams * VigPyrParams;
+typedef struct Vig_WhiteParams * VigWhiteParams;
+typedef struct Vig_WCloudParams * VigWCloudParams;
 
-typedef struct VigVulimg {
+typedef struct Vig_Vulimg {
    VcpVulcomp vulcomp;
    uint32_t nimg;
    VigImage * imgs;
@@ -63,7 +62,7 @@ typedef struct VigVulimg {
    VcpTask fill;
 } * VigVulimg;
 
-struct VigImage {
+struct Vig_Image {
    VigPixel pixel;
    uint32_t width;
    uint32_t height;
@@ -71,7 +70,7 @@ struct VigImage {
    VcpStorage stor;
 };
 
-extern struct VigVulimg vulimg;
+extern struct Vig_Vulimg vulimg;
 extern int vigResult;
 
 /// inicializálva van-e

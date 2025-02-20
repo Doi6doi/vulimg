@@ -5,12 +5,12 @@
 #include "delta8.inc"
 #include <math.h>
 
-TASK( pyr, 2, struct VigPyrParams );
-TASK( delta8, 3, struct VigDeltaParams );
+TASK( pyr, 2, struct Vig_PyrParams );
+TASK( delta8, 3, struct Vig_DeltaParams );
 
 typedef int VigDir;
 
-typedef struct VigDeltaParams * VigDeltaParams;
+typedef struct Vig_DeltaParams * VigDeltaParams;
 
 /// irány delták
 static int vig_dx( VigDir i ) {
@@ -77,7 +77,7 @@ static bool vig_pyr_delta_best( uint32_t * sum,
 
 void vig_dumpdimg( uint8_t * p, VigDeltaParams pars ) {
    uint32_t t = pars->img.stride * 4;
-vtl_ewrite("dumpdimg p:%p %d %d %d %d t:%d", p, pars->img.width, pars->img.height, pars->top, pars->comps,t );
+vyt_ewrite("dumpdimg p:%p %d %d %d %d t:%d", p, pars->img.width, pars->img.height, pars->top, pars->comps,t );
    for (int r=0; r<pars->img.height; ++r) {
       for (int c=0; c<pars->img.width * pars->comps; ++c) {
          int x = p[(r+pars->top)*t + c];
@@ -214,7 +214,7 @@ bool vig_pyr_delta( VigImage a, VigImage b, VigImage pyra, VigImage pyrb,
    if ( ! vig_pyr_delta_check( a, b, false )) return false;
    if ( ! vig_pyr_delta_check( a, pyra, true )) return false;
    if ( ! vig_pyr_delta_check( a, pyrb, true )) return false;
-   struct VigDeltaParams pars;
+   struct Vig_DeltaParams pars;
    pars.comps = vig_pixel_size( a->pixel )/8;
    pars.img.stride = a->stride;
    pars.dx = 0;
@@ -234,7 +234,7 @@ bool vig_pyr_delta( VigImage a, VigImage b, VigImage pyra, VigImage pyrb,
 static bool vig_pyrs_grow( uint32_t n ) {
    if ( vulimg.npyrs >= n ) return true;
    vigResult = VIG_HOSTMEM;
-   VigPyrParams ret = REALLOC( vulimg.pyrs, struct VigPyrParams, n );
+   VigPyrParams ret = REALLOC( vulimg.pyrs, struct Vig_PyrParams, n );
    if ( !ret ) return false;
    vulimg.pyrs = ret;
    vulimg.npyrs = n;
@@ -295,7 +295,7 @@ bool vig_pyr_create( VigImage img, VigImage pyr ) {
    if ( 2 > w || 2 > h ) return false;
    if ( w/2 > vig_image_width(pyr)) return false;
    if ( h > vig_image_height(pyr)) return false;
-   struct VigPyrParams pars;
+   struct Vig_PyrParams pars;
    vig_imgpar( img, & pars.src );
    vig_imgpar( pyr, & pars.dst );
    uint32_t pxs = vig_pixel_size( pyr->pixel );

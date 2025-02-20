@@ -13,11 +13,11 @@ void vfp_init( VcpStr name, uint32_t flags, FrameData d, FrameProc p, int argc,
    while ( p->arg( d, argc, argv, & at ) )
       ;
    if ( ! vfp_width )
-      vtl_die( "Image width missing (-w)" );
+      vyt_die( "Image width missing (-w)" );
    if ( ! vfp_height )
-      vtl_die( "Image height missing (-h)" );
+      vyt_die( "Image height missing (-h)" );
    if ( ! vfp_pixel )
-      vtl_die( "Pixel type missing (-p)" );
+      vyt_die( "Pixel type missing (-p)" );
    if ( ! ( vfp_vc = vcp_init( name, flags )))
       vcp_check_fail();
    if ( ! vig_init( vfp_vc ))
@@ -36,9 +36,9 @@ void vfp_done( FrameData fd, FrameProc fp ) {
 void vfp_process( FrameData fd, FrameProc fp ) {
    VigImage out;
    VigImage * img = fp->frame(fd);
-   while ( vig_raw_read( *img, stdin, vtl_fread, false )) {
+   while ( vig_raw_read( *img, stdin, vyt_fread, false )) {
       if ( out = fp->next( fd ) )
-         vig_raw_write( out, stdout, vtl_fwrite, false );
+         vig_raw_write( out, stdout, vyt_fwrite, false );
    }
 }
 
@@ -52,22 +52,22 @@ void vfp_flip( VigImage * a, VigImage * b ) {
 /// pixel argumentum olvasás
 bool vfp_pixel_arg( int argc, char ** argv, int * at, VigPixel * ret ) {
    if ( argc <= *at )
-      vtl_die( "Missing pixel argument");
+      vyt_die( "Missing pixel argument");
    VcpStr s = argv[(*at)++];
-   if ( vtl_same( s, "1" ))
+   if ( vyt_same( s, "1" ))
       *ret = vix_1;
-   else if ( vtl_same( s, "8" ))
+   else if ( vyt_same( s, "8" ))
       *ret = vix_8;
-   else if ( vtl_same( s, "g8" ))
+   else if ( vyt_same( s, "g8" ))
       *ret = vix_g8;
-   else if ( vtl_same( s, "rgb24" ))
+   else if ( vyt_same( s, "rgb24" ))
       *ret = vix_rgb24;
-   else if ( vtl_same( s, "rgba32" ))
+   else if ( vyt_same( s, "rgba32" ))
       *ret = vix_rgba32;
-   else if ( vtl_same( s, "ybr24" ))
+   else if ( vyt_same( s, "ybr24" ))
       *ret = vix_ybr24;
    else
-      vtl_die( "Unknown pixel argument (1,8,g8,rgb24,rgba32,ybr24): %s",s );
+      vyt_die( "Unknown pixel argument (1,8,g8,rgb24í,rgba32,ybr24): %s",s );
    return true;
 }
    
@@ -75,10 +75,10 @@ bool vfp_pixel_arg( int argc, char ** argv, int * at, VigPixel * ret ) {
 // egész argumentum olvasás
 bool vfp_nat_arg( int argc, char ** argv, int * at, uint32_t * ret ) {
    if ( argc <= *at )
-      vtl_die( "Missing number argument");
+      vyt_die( "Missing number argument");
    VcpStr s = argv[(*at)++];
-   if ( ! vtl_nat( s, ret ))
-      vtl_die( "Not a number argument: %s", s );
+   if ( ! vyt_nat( s, ret ))
+      vyt_die( "Not a number argument: %s", s );
    return true;
 }
    
@@ -86,11 +86,11 @@ bool vfp_nat_arg( int argc, char ** argv, int * at, uint32_t * ret ) {
 bool vfp_arg( FrameData fd, int argc, char ** argv, int * at ) {
    if ( argc <= *at ) return false;
    VcpStr s = argv[(*at)++];
-   if ( vtl_same( s, "-w" ))
+   if ( vyt_same( s, "-w" ))
       return vfp_nat_arg( argc, argv, at, & vfp_width );
-   if ( vtl_same( s, "-h" ))
+   if ( vyt_same( s, "-h" ))
       return vfp_nat_arg( argc, argv, at, & vfp_height );
-   if ( vtl_same( s, "-p" ))
+   if ( vyt_same( s, "-p" ))
       return vfp_pixel_arg( argc, argv, at, & vfp_pixel );
-   vtl_die( "Unknown argument: %s", s );
+   vyt_die( "Unknown argument: %s", s );
 }

@@ -32,7 +32,7 @@ struct FrameProc proc = { .frame = frame,
 
 void * check( void * p ) {
    if (! p)
-      vtl_die("Could not allocate memory");
+      vyt_die("Could not allocate memory");
 }
 
 VigImage * frame( FrameData d ) {
@@ -44,20 +44,20 @@ VigImage * frame( FrameData d ) {
 /// egy delta kiírása
 void dumpd( int i ) {
    Delta d = data.ds+i;
-   vtl_ewrite( "%d: %d %d,%d", i, d->kind, d->dx, d->dy );
+   vyt_ewrite( "%d: %d %d,%d", i, d->kind, d->dx, d->dy );
 }
 
 /// ds-ek kiírása
 void dumpds() {
    for (int i=0; i<data.count; ++i)
       dumpd(i);
-   vtl_ewrite("");
+   vyt_ewrite("");
 }
 
 bool arg( FrameData d, int argc, char ** argv, int * at ) {
    if ( argc <= *at ) return false;
    VcpStr s = argv[(*at)++];
-   if ( vtl_same( s, "-n" ))
+   if ( vyt_same( s, "-n" ))
       return vfp_nat_arg( argc, argv, at, & d->count );
    --*at;
    return vfp_arg( d, argc, argv, at );
@@ -68,7 +68,7 @@ void init( int argc, char ** argv ) {
    data.imgs = NULL;
    vfp_init( "deshake", VCP_VALIDATION, &data, &proc, argc, argv );
    uint32_t n = data.count;
-   if ( ! n ) vtl_die( "Count missing (-n)" );
+   if ( ! n ) vyt_die( "Count missing (-n)" );
    data.ds = check( REALLOC( NULL, struct Delta, n ));
    data.imgs = check( REALLOC( NULL, VigImage, n ));
    data.pyrs = check( REALLOC( NULL, VigImage, n ));
@@ -95,15 +95,14 @@ VigCoord height() {
 
 void wri( VigImage img, VcpStr fname ) {
    FILE * fh = fopen( fname, "w" );
-   vig_bmp_write( img, fh, vtl_fwrite );
+   vig_bmp_write( img, fh, vyt_fwrite );
    fclose(fh);
 }
 
-void fill( VigPart prt, int cx, int cy, uint32_t v ) {
-   prt->img = data.out;
+void fill( VytURect prt, int cx, int cy, uint32_t v ) {
    prt->left = cx;
    prt->top = cy;
-   vig_part_fill( prt, v );
+   vig_part_fill( data.out, prt, v );
 }
 
 /// kép összeállítása
@@ -130,50 +129,50 @@ static int gq=0;
    int ax = abs(fx);
    int ay = abs(fy);
    // új kép
-   struct VigPart r = { .img=data.imgs[i], .left = 0, .top = 0, 
+   struct Vyt_URect r = { .left = 0, .top = 0, 
       .width = width()-ax, .height = height()-ay };
-   int hx=ax, hy=ay;
-   struct VigPart q = { .img=data.prev, .left = bx, .top = by, 
+   struct Vyt_UVec2 h = { .x = ax, .y = ay };
+   struct Vyt_URect q = { .left = bx, .top = by, 
       .width = ax, .height = height()-ay };
+   struct Vyt_UVec2 c = { .x = 0, .y = 0 };
 //   struct VigPart q = { .img=data.prev, .left = bx, .top = by, 
 //      .width = ax, .height = height()-ay };
-   int cx = 0, cy = 0;
    if ( 0 < fx ) {
       r.left = ax;
-      hx = 0;
+      h.x = 0;
       q.left = width()-ax-bx;
-      cx = width()-ax;
+      c.x = width()-ax;
    }
    if ( 0 < fy ) {
       r.top = ay;
-      hy = 0;
+      h.y = 0;
       q.top = 0;
-      cy = by;
+      c.y = by;
    }
-   vig_part_copy( &r, data.out, hx, hy );
+   vig_part_copy( data.imgs[i], &r, data.out, &h );
    // előző kocka függőleges rész
-   vig_part_copy( &q, data.out, cx, cy );
+   vig_part_copy( data.prev, &q, data.out, &c );
 //   fill( &q, cx, cy, 0 );
 
-vtl_ewrite("gq:%d dx:%d dy:%d ex:%d ey:%d fx:%d xy:%d bx:%d by:%d", gq, di->dx, di->dy, ex, ey, fx, fy, bx, by );   
-vtl_ewrite("V: qt:%d ql:%d qw:%d qh:%d cx:%d cy:%d", q.top, q.left, q.width, q.height, cx, cy );
+vyt_ewrite("gq:%d dx:%d dy:%d ex:%d ey:%d fx:%d xy:%d bx:%d by:%d", gq, di->dx, di->dy, ex, ey, fx, fy, bx, by );   
+vyt_ewrite("V: qt:%d ql:%d qw:%d qh:%d cx:%d cy:%d", q.top, q.left, q.width, q.height, c.x, c.y );
    // előző kocka vízszintes rész
    q.width = width()-ax;
    q.height = ay;
-   cx = cy = 0;
+   c.x = c.y = 0;
    q.left = bx;
    q.top = by;
    if ( 0 < fx ) {
       q.left = 0;
-      cx = bx;
+      c.x = bx;
    }
    if ( 0 < fy ) {
       q.top = height()-ay-by;
-      cy = height()-ay;
+      c.y = height()-ay;
    }
-   vig_part_copy( &q, data.out, cx, cy );
+   vig_part_copy( data.prev, &q, data.out, &c );
 //    fill( &q, cx, cy, 0 );
-vtl_ewrite("H: qt:%d ql:%d qw:%d qh:%d cx:%d cy:%d", q.top, q.left, q.width, q.height, cx, cy );
+vyt_ewrite("H: qt:%d ql:%d qw:%d qh:%d cx:%d cy:%d", q.top, q.left, q.width, q.height, c.x, c.y );
 if ( 167 == gq ) {
    wri( data.imgs[i], "o1.bmp" );
    wri( data.prev, "o2.bmp" );
@@ -201,7 +200,7 @@ void flushOne( int i, int u ) {
       vig_image_copy( data.imgs[i], data.out );
    else
       compose(i,u);
-   vig_raw_write( data.out, stdout, vtl_fwrite, false );
+   vig_raw_write( data.out, stdout, vyt_fwrite, false );
    swap( &data.out, &data.prev );
    data.ds[i].kind = WROTE;
 }
@@ -222,7 +221,7 @@ void flushTill( int i ) {
    int u = start;
    while ( 0 < u && DELTA == data.ds[u].kind )
       --u;
-vtl_ewrite("flushTill %d %d", i, start );
+vyt_ewrite("flushTill %d %d", i, start );
    // képek kiírása
    for (int j=start; i <= j; --j )
       flushOne( j, u );
@@ -264,10 +263,10 @@ void compare() {
    } else {
       vig_pyr_delta( data.imgs[1], data.imgs[0], data.pyrs[1], data.pyrs[0],
          0.2, &ds->dx, &ds->dy );
-vtl_ewrite("\nMOVE %d %d\n", ds->dx, ds->dy );
+vyt_ewrite("\nMOVE %d %d\n", ds->dx, ds->dy );
       if ( VIG_MUCH == ds->dx )
          ds->kind = MUCH;
-         else ds->kind = DELTA;
+         else ds->kind = DELTA; 
    }
 }
 

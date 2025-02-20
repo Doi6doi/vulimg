@@ -5,7 +5,7 @@
 layout (local_size_x=UGR, local_size_y=UGR, local_size_z=1) in;
 
 layout (push_constant) uniform Constants {
-   VigJoinParams p;
+   Vig_JoinParams p;
 };
 
 layout (binding = 0 ) readonly buffer Source {

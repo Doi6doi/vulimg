@@ -4,7 +4,7 @@
 layout (local_size_x=UGR, local_size_y=UGR, local_size_z=1) in;
 
 layout (push_constant) uniform Constants { 
-   VigWhiteParams p;
+   Vig_WhiteParams p;
 };
 
 layout (binding = 0 ) readonly buffer Source {
@@ -16,7 +16,7 @@ layout (binding = 1 ) buffer Dest {
 };
 
 uint head;
-VigRect a, b;
+Vig_Rect a, b;
 uint s1, s2, s3;
 uint z, zi, zk;
 bool lastPhase;

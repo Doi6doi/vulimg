@@ -4,7 +4,7 @@
 #include <vulcmp.h>
 #include <vulimg.h>
 
-/// a tárolt adatok
+/// a tárolt adatok 
 typedef struct FrameData * FrameData; 
 
 /// képkocka feldolgozó objektum

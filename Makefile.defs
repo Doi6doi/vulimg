@@ -1,9 +1,9 @@
 NAME=vulimg
-VER=20240921
+VER=20250219
 ARCH=x64
 LARCH=amd64
 MEMAIL=doinospam@gmail.com
 MNAME=Zoltán Várnagy
 DESC=Image functions with vulcmp
 VULCMPDIR=../vulcmp
-VULTOOLSDIR=../vultools
+VYTOOLSDIR=../vytools

@@ -3,8 +3,8 @@
 #include "white8.inc"
 #include "wcloud8.inc"
 
-TASK( white8, 2, struct VigWhiteParams );
-TASK( wcloud8, 2, struct VigWCloudParams );
+TASK( white8, 2, struct Vig_WhiteParams );
+TASK( wcloud8, 2, struct Vig_WCloudParams );
 
 /// egy téglalap kiírása
 /*
@@ -15,15 +15,15 @@ static void vig_rect_dump( VigRect r ) {
 */
 
 /// VigRect -> VtlRect
-static void vig_rect_set( VtlRect r, VigRect s ) {
+static void vig_rect_set( VytURect r, VigRect s ) {
    r->left = s->left;
    r->top = s->top;
    r->width = s->width;
    r->height = s->height;
 }
 
-/// VigRect -> VigPart
-static void vig_part_set( VigPart r, VigRect s ) {
+/// VigRect -> VytURect
+static void vig_part_set( VytURect r, VigRect s ) {
    r->left = s->left;
    r->top = s->top;
    r->width = s->width;
@@ -65,7 +65,7 @@ static void vig_wcloud_load( uint32_t * ptr, uint32_t stride, VigCloud c ) {
 static bool vig_wrects_grow( uint32_t n ) {
    if ( vulimg.nwhites >= n ) return true;
    vigResult = VIG_HOSTMEM;
-   VigWhiteParams ret = REALLOC( vulimg.whites, struct VigWhiteParams, n );
+   VigWhiteParams ret = REALLOC( vulimg.whites, struct Vig_WhiteParams, n );
    if ( !ret ) return false;
    vulimg.whites = ret;
    vulimg.nwhites = n;
@@ -79,7 +79,7 @@ static bool vig_wrects_grow( uint32_t n ) {
 static bool vig_wclouds_grow( uint32_t n ) {
    if ( n <= vulimg.nwclouds ) return true;
    vigResult = VIG_HOSTMEM;
-   VigWCloudParams ret = REALLOC( vulimg.wclouds, struct VigWCloudParams, n );
+   VigWCloudParams ret = REALLOC( vulimg.wclouds, struct Vig_WCloudParams, n );
    if ( ! ret ) return false;
    vulimg.wclouds = ret;
    vulimg.nwclouds = n;
@@ -109,7 +109,7 @@ static void vig_wrect_push( VigRect rr, VigRect r, uint32_t count,
 {
    uint32_t dst = vig_wrect_find( rr, *found, r->weight );
    *found = MIN( count, *found+1 );
-   memmove( rr + dst + 1, rr + dst, (*found-dst-1)*sizeof(struct VigRect) ); 
+   memmove( rr + dst + 1, rr + dst, (*found-dst-1)*sizeof(struct Vig_Rect) ); 
    rr[dst] = *r;
    *good = rr[*found].weight;
 }
@@ -120,7 +120,7 @@ static void vig_wcloud_push( VigCloud cc, VigCloud c, uint32_t count,
 {
    uint32_t dst = vig_wcloud_find( cc, *found, c->weight );
    *found = MIN( count, *found+1 );
-   memmove( cc + dst + 1, cc + dst, (*found-dst-1)*sizeof(struct VigCloud) ); 
+   memmove( cc + dst + 1, cc + dst, (*found-dst-1)*sizeof(struct Vig_Cloud) ); 
    cc[dst] = *c;
    *good = cc[*found].weight;
 }
@@ -203,10 +203,10 @@ static VcpTask vig_wclouds_setup( VigImage img, float maxDist )
 
 /// minden rect kiolvasása az eredményből
 static void vig_wrects_result( VcpStorage s, uint32_t stride, 
-   VtlRect rects, uint32_t * count ) 
+   VytURect rects, uint32_t * count ) 
 {
-   struct VigRect r;
-   struct VigRect rr[ *count ];
+   struct Vig_Rect r;
+   struct Vig_Rect rr[ *count ];
    uint32_t * ptr = vcp_storage_address( s );
    vig_rect_load( ptr, stride, & r );
    uint32_t good = 0;
@@ -232,8 +232,8 @@ DEBUG("count: %d", *count );
 static void vig_wclouds_result( VcpStorage s, uint32_t stride, 
    VtlCloud clouds, uint32_t * count ) 
 {
-   struct VigCloud c;
-   struct VigCloud cc[ *count ];
+   struct Vig_Cloud c;
+   struct Vig_Cloud cc[ *count ];
    uint32_t * ptr = vcp_storage_address( s );
    vig_wcloud_load( ptr, stride, & c );
    uint32_t good = 0;
@@ -257,7 +257,7 @@ DEBUG("count: %d", *count );
 
 bool vig_white_rects( VigImage img, float limit, 
    float density, uint32_t minSize, uint32_t maxDist, 
-   VtlRect rects, uint32_t * count )
+   VytURect rects, uint32_t * count )
 {
    if ( ! vig_inited() ) return false;
    vigResult = VIG_PIXELERR;
@@ -292,7 +292,7 @@ bool vig_white_clouds( VigImage img, float maxDist,
    if ( ! t ) return false;
    vigResult = VIG_TASKERR;
    if ( ! vig_run( t )) return false;
-   vig_drawallclouds( img, 0 );
+//    vig_drawallclouds( img, 0 );
    vig_wclouds_result( vulimg.temp, img->stride, clouds, count );
    return true;
 }
@@ -304,8 +304,8 @@ void vig_drawallrects( VigImage img, uint32_t n ) {
    uint32_t * p = vig_image_address( img );
    uint32_t stride = img->stride;
 DEBUG("debug_data %d", p[DIDX] );	
-   struct VigRect gr;    
-   struct VigPart prt = { .img = img };
+   struct Vig_Rect gr;    
+   struct Vyt_URect prt;
    for ( int y=0; y < img->height; y += z ) {
       for ( int x=0; x < img->width; x += z ) {
 		  uint32_t idx = y*stride + x/4;
@@ -314,19 +314,20 @@ DEBUG("debug_data %d", p[DIDX] );
 fprintf( stderr, "x:%d y:%d ", x, y );			  
 //		     vig_rect_dump( & gr );
   		     vig_part_set( & prt, & gr );
-           vig_draw_rect( &prt, 0xff );
+           vig_draw_rect( img, &prt, 0xff );
         }
 	  }
    }
 }
 
 /// minden felhő kirajzolása temp-ből
-void vig_drawallclouds( VigImage img, uint32_t n ) {
+/*
+ * void vig_drawallclouds( VigImage img, uint32_t n ) {
    uint32_t ix = 4 << (2*n);
    uint32_t iy = ix * 3/2;
    uint32_t * p = vcp_storage_address( vulimg.temp );
    uint32_t s = img->stride;
-   struct VigCloud gc;
+   struct Vig_Cloud gc;
    struct VtlCloud c;
    for ( int y=0; y < img->height; y += ix ) {
       for ( int x=0; x < img->width; x += iy ) {
@@ -341,7 +342,7 @@ fprintf( stderr, "x:%d y:%d ", x, y );
 	  }
    }
 }
-
+*/
 
 
 

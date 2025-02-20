@@ -1,6 +1,6 @@
 include Makefile.defs
 
-DIRS=$(VULCMPDIR) $(VULTOOLSDIR)
+DIRS=$(VULCMPDIR) $(VYTOOLSDIR) .
 
 GLSLIS=copy1 copy32 join3 plane3 trans diff dsum add8
 GLSLPS=pyr delta8
@@ -10,6 +10,7 @@ GLSLWS=white8 wcloud8
 GLSLS=$(GLSLSIS) $(GLSLWS) $(GLSPS) $(GLSLSDS)
 
 CC=gcc -g $(DIRS:%=-L%) $(DIRS:%=-I%)
+CPP=g++ -g $(DIRS:%=-L%) $(DIRS:%=-I%)
 GLSLC=glslc
 RM=rm -f
 EH=@echo
@@ -18,8 +19,9 @@ XXD=xxd
 MLIN=make -f Makefile.linux
 MDEB=make
 LIB=lib$(NAME).so
-
-build: $(LIB)
+PLIB=lib$(NAME)p.so
+	
+build: $(LIB) $(PLIB)
 
 clean:
 	$(RM) $(LIB) *.o *.inc *.spv
@@ -50,6 +52,9 @@ help:
 vulimg.o: vulimg.c vulimg_impl.h vulimg.h $(GLSLIS:=.inc)
 	$(CC) -c -fPIC -Wall -o $@ $<
 
+vulimgp.o: vulimgp.cpp vulimg.hpp
+	$(CPP) -c -fPIC -Wall -o $@ $<
+
 draw.o: draw.c vulimg_impl.h vulimg.h $(GLSLDS:=.inc)
 	$(CC) -c -fPIC -Wall -o $@ $<
 
@@ -60,7 +65,10 @@ white.o: white.c vulimg_impl.h vulimg.h $(GLSLWS:=.inc)
 	$(CC) -c -fPIC -Wall -o $@ $<
 
 $(LIB): vulimg.o draw.o white.o pyr.o
-	$(CC) -shared -o $@ $^ -lvulcmp
+	$(CC) -shared -o $@ $^ -lvulcmp -lvytools
+
+$(PLIB): vulimgp.o 
+	$(CPP) -shared -o $@ $^ -lvulcmp -lvulimg
 
 .PHONY: test
 

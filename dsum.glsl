@@ -4,7 +4,7 @@
 layout (local_size_x=UGR, local_size_y=1, local_size_z=1) in;
 
 layout (push_constant) uniform Constants {
-   VigDSumParams p;
+   Vig_DSumParams p;
 };
 
 layout (binding = 0 ) readonly buffer A {
