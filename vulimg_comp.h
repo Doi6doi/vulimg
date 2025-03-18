@@ -103,6 +103,11 @@ struct Vig_JoinParams {
    UINT index;
 };
 
+struct Vig_DiffParams {
+   STRUCT Vig_ImgParam img;
+   UINT alpha;
+};
+
 struct Vig_DSumParams {
    UINT mode;
    UINT astride;

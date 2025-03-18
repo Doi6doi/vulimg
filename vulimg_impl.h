@@ -20,7 +20,7 @@
       vigResult = VIG_TASKERR; \
       if ( ! vulimg.name ) { \
 		 vulimg.name = vcp_task_create( vulimg.vulcomp, \
-		    name##_spv, name##_spv_len, "main", nstor, sizeof( conf )); \
+		    name##_data, name##_len, "main", nstor, sizeof( conf )); \
 	  } \
       return vulimg.name; \
    } 

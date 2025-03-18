@@ -2,41 +2,39 @@
 
 #include "vulimg_comp.h"
 
+#extension GL_EXT_shader_8bit_storage : require
+#extension GL_EXT_shader_explicit_arithmetic_types: require
+
 layout (local_size_x=UGR, local_size_y=UGR, local_size_z=1) in;
 
 layout (push_constant) uniform Constants {
-   Vig_ImgParam img;
-   int compBits;
+   Vig_DiffParams p;
 };
 
 layout (binding = 0 ) readonly buffer A {
-   uint a[];
+   uint8_t a[];
 };
 
 layout (binding = 1 ) readonly buffer B {
-   uint b[];
+   uint8_t b[];
 };
 
 layout( binding = 2 ) writeonly buffer Dest {
-   uint dest[];
+   uint8_t dest[];
 };
+
+uint8_t calc( uint8_t aa, uint8_t bb, bool alp ) {
+   if ( aa < bb )
+      return alp ? bb : bb-aa;
+      else return alp ? aa : aa-bb;
+}
          
 void main() {
    uint y = gl_GlobalInvocationID.y;
-   if ( img.height <= y ) return;
-   uint stride = img.stride;
+   if ( p.img.height <= y ) return;
    uint x = gl_GlobalInvocationID.x;
-   if ( stride <= x ) return;
-   uint i = y * stride + x;
-   uint av = a[ i ];
-   uint bv = b[ i ];
-   uint d = 0;
-   for (int i=0; i < 32; i += compBits) {
-      uint ab = bitfieldExtract( av, i, compBits );
-      uint bb = bitfieldExtract( bv, i, compBits );
-      uint db = ab < bb ? bb-ab : ab-bb;
-      d = bitfieldInsert( d, db, i, compBits );
-   }
-   dest[ i ] = d;
+   if ( p.img.width <= x ) return;
+   uint i = y * p.img.stride + x;
+   dest[i] = calc( a[i], b[i], p.alpha == x % 4 );
 }
    

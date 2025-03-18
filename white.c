@@ -30,6 +30,7 @@ static void vig_part_set( VytURect r, VigRect s ) {
    r->height = s->height;
 }
 
+/*
 /// VigRect -> VtlRect
 static void vig_cloud_set( VtlCloud c, VigCloud s ) {
    c->weight = s->weight;
@@ -38,7 +39,7 @@ static void vig_cloud_set( VtlCloud c, VigCloud s ) {
    c->dx = s->dx;
    c->dy = s->dy;
 }
-
+*/
 /// egy rect betöltése a képből
 static void vig_rect_load( uint32_t * ptr, uint32_t stride, VigRect r ) {
    r->link = ptr[0];
@@ -228,6 +229,7 @@ DEBUG("count: %d", *count );
    *count = found;
 }
 
+/*
 /// minden felhő kiolvasása az eredményből
 static void vig_wclouds_result( VcpStorage s, uint32_t stride, 
    VtlCloud clouds, uint32_t * count ) 
@@ -245,15 +247,11 @@ static void vig_wclouds_result( VcpStorage s, uint32_t stride,
          break;
       vig_wcloud_load( ptr+c.link, stride, & c );
    }
-/*for (int k=0; k < *count; ++k )
-vig_rect_dump( rr+k );
-DEBUG("count: %d", *count );   
-*/
    for ( int i=0; i<found; ++i)
       vig_cloud_set( clouds+i, cc+i );
    *count = found;
 }
-
+*/
 
 bool vig_white_rects( VigImage img, float limit, 
    float density, uint32_t minSize, uint32_t maxDist, 
@@ -279,6 +277,7 @@ DEBUG( "RSLT %d", vigResult );
    return true;
 }
 
+/*
 bool vig_white_clouds( VigImage img, float maxDist,
    VtlCloud clouds, uint32_t * count )
 {
@@ -296,7 +295,7 @@ bool vig_white_clouds( VigImage img, float maxDist,
    vig_wclouds_result( vulimg.temp, img->stride, clouds, count );
    return true;
 }
-
+*/
 
 /// minden téglalap kirajzolása
 void vig_drawallrects( VigImage img, uint32_t n ) {

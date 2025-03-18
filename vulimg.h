@@ -30,7 +30,6 @@ typedef VytFTrans2 VigTrans;
 
 #define VIG_SUCCESS    VCP_SUCCESS
 #define VIG_HOSTMEM    VCP_HOSTMEM
-#define VIG_STREAMERR  VYT_STREAMERR
 #define VIG_INITERR    -11001
 #define VIG_STORAGEERR -11002
 #define VIG_COORDERR   -11003
@@ -38,6 +37,7 @@ typedef VytFTrans2 VigTrans;
 #define VIG_TASKERR    -11005
 #define VIG_NOIMG      -11006
 #define VIG_BMPERR     -11008
+#define VIG_STREAMERR  -11009
 
 #define VIG_MUCH 1000000000
 

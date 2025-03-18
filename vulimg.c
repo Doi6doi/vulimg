@@ -2,11 +2,6 @@
 
 #pragma pack(push,1)
 
-typedef struct Vig_DiffParams {
-   struct Vig_ImgParam img;
-   int32_t compBits;
-} * VigDiffParams;
-
 typedef struct Vig_BmpFileHeader {
    uint16_t magic;
    uint32_t size;
@@ -66,14 +61,11 @@ bool vig_run( VcpTask t ) {
 } 
     
 bool vig_init( VcpVulcomp v ) {
+   vigResult = VIG_INITERR;
+   if ( vulimg.started ) return false;
+   if ( ! v ) return false;
+   if ( ! (vcp_flags(v) & VCP_8BIT)) return false;
    vigResult = VIG_SUCCESS;
-   if ( vulimg.started ) {
-	  if ( v != vulimg.vulcomp ) {
-		 vigResult = VIG_INITERR;
-		 return false;
-	  }
-	  return true;
-   }
    vulimg.vulcomp = v;
    vulimg.nimg = 0;
    vulimg.imgs = NULL;
@@ -101,7 +93,6 @@ bool vig_init( VcpVulcomp v ) {
    vulimg.started = true;
    return true;
 }
-
 
 /// is vulimg inited
 bool vig_inited() {
@@ -317,9 +308,18 @@ bool vig_image_transform( VigImage src, VigImage dst, VigTrans trans ) {
 	return vig_run( t );
 }
 
+uint32_t vig_alpha4( VigPixel x ) {
+   switch ( x ) {
+      case vix_argb32: return 0;
+      case vix_rgba32: return 3;
+      default: return 5;
+   }
+}
+
 bool vig_image_diff( VigImage a, VigImage b, VigImage dst ) {
    if ( ! vig_inited() ) return false;
    vigResult = VIG_PIXELERR;
+   if ( vix_1 == a->pixel ) return false;
    if ( ! vig_pixel_same( a->pixel, b->pixel )) return false;
    if ( ! vig_pixel_same( a->pixel, dst->pixel )) return false;
    if ( vig_pixel_signed( dst->pixel )) return false;
@@ -329,14 +329,15 @@ bool vig_image_diff( VigImage a, VigImage b, VigImage dst ) {
    uint32_t h = vig_image_height(a);
    if ( h != vig_image_height(b) || h != vig_image_height(dst) ) return false;
    if ( a == dst || b == dst ) return false;
-   uint32_t nx = DIVC( dst->width * vig_pixel_size( dst->pixel ), 32*UGR );
-   struct Vig_DiffParams pars;
-   vig_imgpar( a, & pars.img );
-   pars.compBits = vig_pixel_size( dst->pixel ) / vig_pixel_comps( dst->pixel );
+   uint32_t wb = w*vig_pixel_size( dst->pixel ) / 8;
+   struct Vig_DiffParams pars = {
+      .img = { .width = wb, .height = h, .stride = vig_image_stride( dst ) },
+      .alpha = vig_alpha4( dst->pixel )
+   };
    VcpTask t = vig_diff();
    if ( ! t ) return false;
 	VcpStorage ss[3] = { a->stor, b->stor, dst->stor };
-	vcp_task_setup( t, ss, nx, DIVC( dst->height, UGR ), 1, & pars );
+	vcp_task_setup( t, ss, DIVC( pars.img.width, UGR ), DIVC( h, UGR ), 1, & pars );
 	return vig_run( t );
 }
 
@@ -550,7 +551,7 @@ static bool vig_bmp_write_pal8( void * stream, VytStreamOp write ) {
          cols[i] = i << 16 | i << 8 | i;
       first = false;
    } 
-   return vyt_write_block( stream, write, cols, 256*4 );
+   return vyt_block_op( stream, write, cols, 256*4 );
 }
 
 
@@ -570,7 +571,7 @@ bool vig_bmp_write( VigImage img, void * stream, VytStreamOp write ) {
       .address = VT_L32( hsz + psz )
    };
    vigResult = VIG_STREAMERR;
-   if ( ! vyt_write_block( stream, write, &bfh, sizeof(bfh))) return false;
+   if ( ! vyt_block_op( stream, write, &bfh, sizeof(bfh))) return false;
    struct Vig_BmpInfoHeader bih = {
 	  .size = VT_L32( sizeof( struct Vig_BmpInfoHeader )),
 	  .width = VT_L32( img->width ),
@@ -584,12 +585,12 @@ bool vig_bmp_write( VigImage img, void * stream, VytStreamOp write ) {
 	  .colors = 0,
 	  .impcols = 0
    };
-   if ( ! vyt_write_block( stream, write, &bih, sizeof(bih))) return false;
+   if ( ! vyt_block_op( stream, write, &bih, sizeof(bih))) return false;
    if ( 0 < psz && ! vig_bmp_write_pal8( stream, write )) return false;
    char * data = vig_image_address( img );
    int stride = vig_image_stride(img);
    for (int r=img->height-1; 0 <=r; --r) {
-      if ( ! vyt_write_block( stream, write, data+r*stride, stride )) return false;
+      if ( ! vyt_block_op( stream, write, data+r*stride, stride )) return false;
    }
    vigResult = VIG_SUCCESS;
    return true;
@@ -599,10 +600,10 @@ bool vig_bmp_write( VigImage img, void * stream, VytStreamOp write ) {
 VigImage vig_bmp_read( void * stream, VytStreamOp read ) {
    vigResult = VIG_BMPERR;
    struct Vig_BmpFileHeader bfh;
-   if ( ! vyt_read_block( stream, read, &bfh, sizeof(bfh))) return false;
+   if ( ! vyt_block_op( stream, read, &bfh, sizeof(bfh))) return false;
    if ( 0x4d42 != bfh.magic ) return NULL;
    struct Vig_BmpInfoHeader bih;
-   if ( ! vyt_read_block( stream, read, &bih, sizeof(bih))) return false;
+   if ( ! vyt_block_op( stream, read, &bih, sizeof(bih))) return false;
    if ( sizeof(bih) > bih.size ) return NULL;
    if ( 1 != bih.planes ) return NULL;
    switch (bih.compression) {
@@ -619,7 +620,7 @@ VigImage vig_bmp_read( void * stream, VytStreamOp read ) {
    int stride = vig_image_stride(ret);
    char * data = vig_image_address(ret);
    for (int r=ret->height-1; 0 <=r; --r) {
-      if ( ! vyt_read_block( stream, read, data+r*stride, stride )) return false;
+      if ( ! vyt_block_op( stream, read, data+r*stride, stride )) return false;
    }
    vigResult = VIG_SUCCESS;
    return ret;
@@ -634,10 +635,10 @@ bool vig_raw_read( VigImage img, void * stream, VytStreamOp read, bool pad ) {
    int wps = width * vig_pixel_size( img->pixel );
    vigResult = VIG_SUCCESS;
    if ( pad || wps == stride * 8 )
-      return vyt_read_block( stream, read, data, height * stride );
+      return vyt_block_op( stream, read, data, height * stride );
    int w = DIVC( wps, 8 );
    for (int r=img->height; 0 < r; --r) {
-      if ( ! vyt_read_block( stream, read, data, w ))
+      if ( ! vyt_block_op( stream, read, data, w ))
          return false;
       data += stride;
    }
@@ -652,10 +653,10 @@ bool vig_raw_write( VigImage img, void * stream, VytStreamOp write, bool pad ) {
    int stride = vig_image_stride( img );
    int wps = width * vig_pixel_size( img->pixel );
    if ( pad || wps == stride * 8 )
-      return vyt_write_block( stream, write, data, height * stride );
+      return vyt_block_op( stream, write, data, height * stride );
    int w = DIVC( wps, 8 );
    for (int r=height; 0 < r; --r) {
-      if ( ! vyt_write_block( stream, write, data, w ))
+      if ( ! vyt_block_op( stream, write, data, w ))
          return false;
       data += stride;
    } 
