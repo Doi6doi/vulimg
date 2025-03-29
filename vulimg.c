@@ -37,6 +37,7 @@ int vigResult = VIG_SUCCESS;
 #include "diff.inc"
 #include "dsum.inc"
 #include "add8.inc"
+#include "hist8.inc"
 
 int vig_error() { return vigResult; }
 
@@ -90,6 +91,7 @@ bool vig_init( VcpVulcomp v ) {
    vulimg.wcloud8 = NULL;
    vulimg.delta8 = NULL;
    vulimg.fill = NULL;
+   vulimg.hist8 = NULL;
    vulimg.started = true;
    return true;
 }
@@ -182,6 +184,7 @@ TASK( diff, 3, struct Vig_DiffParams );
 TASK( dsum, 3, struct Vig_DSumParams );
 TASK( add8, 2, struct Vig_AddParams );
 TASK( copy32, 2, struct Vig_CopyParams );
+TASK( hist8, 2, struct Vig_HistParams );
 
 /// task for copy
 static VcpTask vig_copy_task( VigCopyParams pars, VigPixel pix,
@@ -308,13 +311,23 @@ bool vig_image_transform( VigImage src, VigImage dst, VigTrans trans ) {
 	return vig_run( t );
 }
 
-uint32_t vig_alpha4( VigPixel x ) {
+uint32_t vig_alpha8( VigPixel x ) {
    switch ( x ) {
       case vix_argb32: return 0;
       case vix_rgba32: return 3;
       default: return 5;
    }
 }
+
+/// a fényességi komponens
+uint32_t vig_vol8( VigPixel x ) {
+   switch ( x ) {
+      case vix_rgb24: case vix_rgba32: return 1;
+      case vix_argb32: return 2;
+      default: return 0;
+   }
+}
+      
 
 bool vig_image_diff( VigImage a, VigImage b, VigImage dst ) {
    if ( ! vig_inited() ) return false;
@@ -332,7 +345,7 @@ bool vig_image_diff( VigImage a, VigImage b, VigImage dst ) {
    uint32_t wb = w*vig_pixel_size( dst->pixel ) / 8;
    struct Vig_DiffParams pars = {
       .img = { .width = wb, .height = h, .stride = vig_image_stride( dst ) },
-      .alpha = vig_alpha4( dst->pixel )
+      .alpha = vig_alpha8( dst->pixel )
    };
    VcpTask t = vig_diff();
    if ( ! t ) return false;
@@ -382,6 +395,7 @@ void vig_done() {
    vig_done_task( & vulimg.delta8 );
    vig_done_task( & vulimg.rect );
    vig_done_task( & vulimg.fill );
+   vig_done_task( & vulimg.hist8 );
    vulimg.started = false;
 }
 
@@ -734,6 +748,51 @@ bool vig_image_avg( VigImage img, VigValue * pix ) {
    for (int i=0; i < comps; ++i) {
 	  uint32_t cval = 0xff & (cvals[comps-1-i] / sz);
       *pix = (*pix) << 8 | cval;
+   }
+   return true;
+}   
+
+/// eredmény normalizálása
+static void vig_norm( VigHist h, VytU n ) {
+   VytF m = 0;
+   for (int i=0; i<n; ++i) {
+      if ( m < h[i] )
+         m = h[i];
+   }
+   if ( 0 == m ) return;
+   for (int i=0; i<n; ++i)
+      h[i] /= m;
+}
+   
+
+bool vig_hist_create( VigImage img, VigHist horz, VigHist vert, bool norm ) {
+   if ( ! vig_inited() ) return false;
+   vigResult = VIG_PIXELERR;
+   if ( vig_pixel_signed( img->pixel )) return false;
+   VytU comps = vig_pixel_comps( img->pixel );
+   VytU w = img->width;
+   VytU h = img->height;
+   if ( 8 != vig_pixel_size( img->pixel ) / comps ) return false;
+   struct Vig_HistParams pars = {
+      .img = { .width = w, .height = h, .stride = vig_image_stride( img ) },
+      .mul = comps,
+      .rem = vig_vol8( img->pixel )
+   }; 
+   if ( ! vig_temp_grow( sizeof(VytU)*(w + h))) return false;
+   VcpTask t = vig_hist8();
+   if ( ! t ) return false;
+   VcpStorage ss[2] = { img->stor, vulimg.temp };
+   vcp_task_setup( t, ss, DIVC( MAX(w, h), UGR ), 1, 1, & pars );
+   if ( ! vig_run( t )) return false;
+   VytU * p = (VytU *)vcp_storage_address( vulimg.temp );
+   for (int i=0; i<w; ++i)
+      horz[i] = (VytF)p[i];
+   p += w;
+   for (int i=0; i<h; ++i)
+      vert[i] = (VytF)p[i];
+   if ( norm ) {
+      vig_norm( horz, w );
+      vig_norm( vert, h );
    }
    return true;
 }   

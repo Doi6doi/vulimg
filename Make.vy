@@ -9,7 +9,7 @@ make {
       $ident := "https://github.com/Doi6doi/vulimg";
 
       $gs := ["copy1","copy32","join3","plane3","trans","diff","dsum","add8",
-         "pyr","delta8","rect","fill","white8","wcloud8"];
+         "hist8","pyr","delta8","rect","fill","white8","wcloud8"];
       $cs := ["vulimg.c","draw.c","white.c","pyr.c"];
       $vh := ["vulimg_comp.h"];
       $hs := [$vh,"vulimg.h","vulimg_impl.h"];

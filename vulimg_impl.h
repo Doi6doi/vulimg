@@ -60,6 +60,7 @@ typedef struct Vig_Vulimg {
    VcpTask wcloud8;
    VcpTask delta8;
    VcpTask fill;
+   VcpTask hist8;
 } * VigVulimg;
 
 struct Vig_Image {

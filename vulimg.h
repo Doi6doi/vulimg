@@ -19,6 +19,8 @@ typedef enum VigPixel { vix_Unknown, vix_1, vix_8, vix_g8, vix_s8,
 /// one image plane   
 typedef enum VigPlane { vpl_Unknown, vpl_R, vpl_G, vpl_B, vpl_Y, vpl_Cb, vpl_Cr } VigPlane;
 
+typedef VytF * VigHist;
+
 /// gpu image system
 typedef struct Vig_Vulimg * VigVulimg;
 
@@ -100,6 +102,9 @@ bool vig_pyr_create( VigImage img, VigImage pyr );
 /// calculate delta (move) between two images using their pyramids
 bool vig_pyr_delta( VigImage a, VigImage b, VigImage pyra, VigImage pyrb,
    float limit, int32_t * dx, int32_t * dy );
+
+/// create horizontal nad vertical histogram of an image
+bool vig_hist_create( VigImage img, VigHist horz, VigHist vert, bool norm );
 
 /// get rects of interest
 bool vig_white_rects( VigImage img, float limit, 

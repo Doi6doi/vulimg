@@ -146,6 +146,12 @@ struct Vig_DeltaParams {
    INT dy;
 };
 
+struct Vig_HistParams {
+   STRUCT Vig_ImgParam img;
+   UINT mul;
+   UINT rem;
+};
+
 
 #ifndef VULKAN
 #pragma pack(pop)
