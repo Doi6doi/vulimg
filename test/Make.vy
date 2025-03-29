@@ -20,8 +20,8 @@ make {
 
       run {
          build();
-         exec( runPath()+" ffplay -i shk.mkv -vf frei0r=libdeshake" );
-//         exec( runPath()+" ffmpeg -i shk.mkv -t 1 -vf frei0r=libdeshake output_%04d.png" );
+         exec( runPath()+" ffplay -i shk.mkv -vf \"frei0r=libdeshake:filter_params=0.9|0.1\"" );
+//         exec( runPath()+" ffmpeg -t 1 -ss 18 -i shk.mkv -t 1 -vf \"frei0r=libdeshake:filter_params=0.9|0.1\" shk/output_%04d.png" );
       }
 
       debug {
