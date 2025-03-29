@@ -1,14 +1,16 @@
 make {
 
-   import { C; }
-
    init {
       $fn := "deshake";
-      $fdc := "f0r_"+$fn+".c";
-      $fdo := C.libFile( $fn );
+
       $dirs := ["..","../../vulcmp","../../vytools"];
       $libs := ["vulcmp","vulimg","vytools","m","vulkan"];
-      C.set({incDir:$dirs, libDir:$dirs, lib:$libs, show:true});
+
+      $C := tool("C", {incDir:$dirs, libDir:$dirs, lib:$libs, show:true});
+
+      $fdc := "f0r_"+$fn+".c";
+      $fdo := $C.libFile( $fn );
+
       $purge := [$fdo];
    }
    
@@ -37,8 +39,8 @@ make {
    function {
    
       genFre() {
-         C.set( "libMode", true );
-         C.build( $fdo, $fdc );
+         $C.set( "libMode", true );
+         $C.build( $fdo, $fdc );
       }
 
       runPath() {
