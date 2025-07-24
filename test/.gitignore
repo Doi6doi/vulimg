@@ -5,9 +5,11 @@ ide.txt
 *.mp4
 *.mkv
 *.elf
+*.bmp
 
 foltok*.bmp
 pottyok*.bmp
+mpv-shot*.jpg
 
 /*.obj
 /*.exe

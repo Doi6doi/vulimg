@@ -3,8 +3,10 @@
 *.o
 Makefile
 vulimg.geany
-/*.spv
-/*.dll
-/*.obj
-/*.exe
+*.spv
+*.dll
+*.obj
+*.exe
+*.dep
+p_*.cpp
 megsem
