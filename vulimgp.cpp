@@ -3,8 +3,15 @@
 #include "vulimg.h"
  
 using namespace vig;
+using namespace vigc;
 
 VcpVulcomp vulcmp = NULL;
+
+/// refcounted handle
+struct HRefData: RefData {
+   void * handle;
+   HRefData( void * handle ) : handle(handle) {}
+};
 
 /// stream művelet
 VytU streamOp( void * stream, void * mem, VytU size ) {
@@ -107,7 +114,6 @@ Image::Image( Image img, bool withData )
 
 void Image::destroy() {
    vig_image_free( (VigImage)imp() );
-   HRefCount::destroy();
 }
 
 Ptr Image::imp() const {

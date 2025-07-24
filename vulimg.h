@@ -4,8 +4,19 @@
 #include <vulcmp.h>
 #include <vytools.h>
 
-VYT_CBEGIN()
- 
+#ifdef __cplusplus
+#define VIG_NBEGIN() \
+   using namespace vcpc; \
+   using namespace vytc; \
+   namespace vigc {
+#define VIG_NEND() }
+#else
+#define VIG_NBEGIN()
+#define VIG_NEND()
+#endif
+
+VIG_NBEGIN()
+
 /// image x or y coordinate
 typedef VytU VigCoord;
 
@@ -13,10 +24,10 @@ typedef VytU VigCoord;
 typedef VytU VigValue;
 
 /// pixel kind
-typedef enum VigPixel { vix_Unknown, vix_1, vix_8, vix_g8, vix_s8, 
+typedef enum VigPixel { vix_Unknown, vix_1, vix_8, vix_g8, vix_s8,
    vix_rgb24, vix_ybr24, vix_rgba32, vix_argb32 } VigPixel;
-   
-/// one image plane   
+
+/// one image plane
 typedef enum VigPlane { vpl_Unknown, vpl_R, vpl_G, vpl_B, vpl_Y, vpl_Cb, vpl_Cr } VigPlane;
 
 typedef VytF * VigHist;
@@ -75,7 +86,7 @@ void vig_image_free( VigImage );
 
 /// copy whole image
 bool vig_image_copy( VigImage src, VigImage dst );
-   
+
 /// extract plane from image
 bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst );
 /// add a plane to image
@@ -107,8 +118,8 @@ bool vig_pyr_delta( VigImage a, VigImage b, VigImage pyra, VigImage pyrb,
 bool vig_hist_create( VigImage img, VigHist horz, VigHist vert, bool norm );
 
 /// get rects of interest
-bool vig_white_rects( VigImage img, float limit, 
-   float density, uint32_t minSize, uint32_t maxDist, 
+bool vig_white_rects( VigImage img, float limit,
+   float density, uint32_t minSize, uint32_t maxDist,
    VytURect rects, uint32_t * count );
 
 /// draw rectangle
@@ -127,6 +138,6 @@ bool vig_bmp_write( VigImage img, void * stream, VytStreamOp write );
 void vig_drawallrects( VigImage img, uint32_t n );
 // void vig_drawallclouds( VigImage img, uint32_t n );
 
-VYT_CEND()
+VIG_NEND()
 
 #endif // VULIMGH

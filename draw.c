@@ -1,5 +1,7 @@
 #include "vulimg_impl.h"
 
+VIG_NBEGIN()
+
 #include "rect.inc"
 #include "fill.inc"
 
@@ -12,8 +14,10 @@ bool vig_draw_rect( VigImage img, VytURect prt, VigValue pixel ) {
    vigResult = VIG_SUCCESS;
    if ( 0 == prt->width * prt->height ) return true;
    vigResult = VIG_PIXELERR;
-   struct Vig_RectParams pars = { .pixVal = pixel, 
-	  .pixSize = vig_pixel_size( img->pixel ) };
+   struct Vig_RectParams pars = { 
+	  .pixSize = vig_pixel_size( img->pixel ),
+     .pixVal = pixel
+   };
    vig_imgpar( img, & pars.img );
    pars.left = prt->left;
    pars.top = prt->top;
@@ -32,8 +36,10 @@ bool vig_part_fill( VigImage img, VytURect prt, VigValue pixel ) {
    vigResult = VIG_SUCCESS;
    if ( 0 == prt->width * prt->height ) return true;
    vigResult = VIG_PIXELERR;
-   struct Vig_RectParams pars = { .pixVal = pixel, 
-	  .pixSize = vig_pixel_size( img->pixel ) };
+   struct Vig_RectParams pars = {  
+	  .pixSize = vig_pixel_size( img->pixel ),
+     .pixVal = pixel 
+   };
    vig_imgpar( img, & pars.img );
    pars.left = prt->left;
    pars.top = prt->top;
@@ -46,3 +52,5 @@ bool vig_part_fill( VigImage img, VytURect prt, VigValue pixel ) {
    vcp_task_setup( t, & img->stor, gx, gy, 1, & pars );
    return vig_run( t );
 }
+
+VIG_NEND()

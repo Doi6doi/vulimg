@@ -1,5 +1,7 @@
 #include "vulimg_impl.h"
 
+VIG_NBEGIN()
+
 #include "white8.inc"
 #include "wcloud8.inc"
 
@@ -208,7 +210,7 @@ static void vig_wrects_result( VcpStorage s, uint32_t stride,
 {
    struct Vig_Rect r;
    struct Vig_Rect rr[ *count ];
-   uint32_t * ptr = vcp_storage_address( s );
+   uint32_t * ptr = (uint32_t *)vcp_storage_address( s );
    vig_rect_load( ptr, stride, & r );
    uint32_t good = 0;
    uint32_t found = 0;
@@ -266,7 +268,7 @@ bool vig_white_rects( VigImage img, float limit,
    VcpTask t = vig_wrects_setup( img, limit, density, minSize, maxDist );
    if ( ! t ) return false;
    vigResult = VIG_TASKERR;
-uint32_t * p = vcp_storage_address( vulimg.temp );
+   uint32_t * p = (uint32_t *)vcp_storage_address( vulimg.temp );
 DEBUG( "DST1: %d", p[1] );
    if ( ! vig_run( t )) return false;
 DEBUG( "RUN %d", vigResult );
@@ -300,7 +302,7 @@ bool vig_white_clouds( VigImage img, float maxDist,
 /// minden téglalap kirajzolása
 void vig_drawallrects( VigImage img, uint32_t n ) {
    uint32_t z = 4 << (2*n);
-   uint32_t * p = vig_image_address( img );
+   uint32_t * p = (uint32_t *)vig_image_address( img );
    uint32_t stride = img->stride;
 DEBUG("debug_data %d", p[DIDX] );	
    struct Vig_Rect gr;    
@@ -343,6 +345,7 @@ fprintf( stderr, "x:%d y:%d ", x, y );
 }
 */
 
+VIG_NEND()
 
 
 

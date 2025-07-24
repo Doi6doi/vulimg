@@ -49,6 +49,7 @@ struct Vig_ImgParam {
 struct Vyt_FTrans2 {
    FLOAT sx, ry, rx, sy, dx, dy;
 };
+
 #endif
 
 struct Vig_CopyParams {

@@ -2,19 +2,19 @@
 #define VULIMGHPP
 
 #include <vytools.hpp>
- 
-using namespace vyt;   
+
+using namespace vyt;
 
 namespace vig {
 
 /// pixel value
 typedef Uint Value;
-     
+
 /// pixel kind
 enum class Pixel { UNKNOWN, B1, B8, G8, S8, RGB24, YBR24, RGBA32, ARGB32 };
 
 /// plane
-enum class Plane { UNKNOWN, R, G, B, Y, Cb, Cr };   
+enum class Plane { UNKNOWN, R, G, B, Y, Cb, Cr };
 
 /// module class
 class Vulimg: public NoAssign {
@@ -29,7 +29,7 @@ public:
 };
 
 /// image
-class Image: public HRefCount {
+class Image: public RefCount {
 protected:
    void destroy();
 public:
@@ -44,7 +44,7 @@ public:
    /// get dimensions
    UVec2 dims() const;
    /// get image data address
-   Ptr address(); 
+   Ptr address();
    /// get image implementation
    Ptr imp() const;
    /// get image stride in bytes

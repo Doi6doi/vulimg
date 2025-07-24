@@ -1,9 +1,10 @@
 #include "vulimg_impl.h"
-#include "vulimg_impl.h"
 
 #include "pyr.inc"
 #include "delta8.inc"
 #include <math.h>
+
+VIG_NBEGIN()
 
 TASK( pyr, 2, struct Vig_PyrParams );
 TASK( delta8, 3, struct Vig_DeltaParams );
@@ -101,8 +102,8 @@ void vig_pyr_delta_cpu( int i, int n, VigImage a,
 // fprintf( stderr, "\nVPDC lim:%d w:%d h:%d t:%d m:%d\n", 
 // lim, pars->img.width, pars->img.height, pars->top, m );         
    uint32_t sums[10];
-   uint8_t * qa = vig_image_address(pa);
-   uint8_t * qb = vig_image_address(pb);
+   uint8_t * qa = (uint8_t *)vig_image_address(pa);
+   uint8_t * qb = (uint8_t *)vig_image_address(pb);
    uint32_t cw = pars->img.width-abs(pars->dx)-1;
    uint32_t ch = pars->img.height-abs(pars->dy)-1;
    for (VigDir d=0; d<=9; ++d)
@@ -150,7 +151,7 @@ static bool vig_pyr_delta_bests( VigDeltaParams p, float wclimit ) {
    static uint32_t sum[10];
    for (int j=1; j<=9; ++j)
       sum[j] = 0;
-   uint32_t * sums = vcp_storage_address( vulimg.temp );
+   uint32_t * sums = (uint32_t *)vcp_storage_address( vulimg.temp );
    uint32_t h = p->img.height;
    for (int i=0; i<h; ++i) {
       for (int j=1; j<=9; ++j) {
@@ -260,7 +261,7 @@ static VcpTask vig_pyr_setup( VigImage src, VigImage dst ) {
    if ( ! ret ) return NULL;
    vcp_task_setup( ret, ss, 0, 0, 0, NULL );
    VcpPart prs = vcp_task_parts( ret, n );
-   if ( ! prs ) return false;
+   if ( ! prs ) return NULL;
    uint32_t row = 0;
    for ( int i=0; i<n; ++i ) {
       VigPyrParams py = vulimg.pyrs+i;
@@ -304,3 +305,5 @@ bool vig_pyr_create( VigImage img, VigImage pyr ) {
    if ( ! t ) return false;
 	return vig_run( t );
 }
+
+VIG_NEND()

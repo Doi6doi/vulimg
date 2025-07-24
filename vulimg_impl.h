@@ -1,6 +1,8 @@
 #ifndef VULIMG_IMPLH
 #define VULIMG_IMPLH
  
+#define VIG_LIB 
+ 
 #include "vulimg.h"
 #include "vulimg_comp.h"
 #include <stdlib.h>
@@ -24,6 +26,8 @@
 	  } \
       return vulimg.name; \
    } 
+
+VIG_NBEGIN()
 
 typedef struct Vig_ImgParam * VigImgParam;
 typedef struct Vig_Rect * VigRect;
@@ -88,5 +92,7 @@ bool vig_run( VcpTask t );
 bool vig_pixel_signed( VigPixel pix );
 /// komponensek száma
 uint32_t vig_pixel_comps( VigPixel pix );
+
+VIG_NEND()
 
 #endif // VULIMG_IMPLH
