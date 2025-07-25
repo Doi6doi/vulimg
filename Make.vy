@@ -11,9 +11,9 @@ make {
       $dirs := regexp( $libs, "#.+#", "../\\0" );
 
       $C := tool("C",{ incDir:$dirs, libMode:true, libDir:$dirs, lib:$libs+["m"],
-         show:true, earg:"-Wfatal-errors" } );
+         show:true } );
       $Cpp := tool("Cpp", {incDir:$dirs, libMode:true, libDir:$dirs, lib:$plibs,
-         show:true, earg:"-Wfatal-errors" } );
+         show:true } );
       $Glsl := tool("Glsl");
 
       $gs := ["copy1","copy32","join3","plane3","trans","diff","dsum","add8",
@@ -35,6 +35,22 @@ make {
 
    target {
       
+      menu {
+         Dlg := tool("Dialog");
+         m := Dlg.menu("VulImg")
+            .item("VulImg is a C and C++ library of"
+             +" low-level image manipulation with GPU through vulkan")
+            .item("Build libraries",build)
+            .item("Clean generated files",clean)
+            .item("Test libraries",test)
+            .item("Build documentation",docs);
+         case (system()) {
+            "Linux": m.item("Create Debian package",deb);
+            "Windows": m.item("Create Windows zip", wzip);
+         }
+         m.exec();
+      }
+
       build {
          genShd();
          genCcs();
@@ -43,9 +59,22 @@ make {
          genLibs();
       }
       
-      clean {
-         purge( $purge );
+      clean { purge( $purge ); }
+
+      docs { make("docs"); }
+
+      test { make("test"); }
+
+      deb {
+         build();
+         makeDeb();
       }
+
+      wzip {
+         build();
+         makeWZip();
+      }
+
    }
 
    function {

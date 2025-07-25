@@ -26,10 +26,10 @@ typedef struct Vig_BmpInfoHeader {
 } * VigBmpInfoHeader;
 
 #pragma pack(pop)
- 
+
 struct Vig_Vulimg vulimg = { .started=false };
 
-int vigResult = VIG_SUCCESS;
+VigResult vigResult = VIG_SUCCESS;
 
 #include "copy1.inc"
 #include "copy32.inc"
@@ -41,7 +41,7 @@ int vigResult = VIG_SUCCESS;
 #include "add8.inc"
 #include "hist8.inc"
 
-int vig_error() { return vigResult; }
+VigResult vig_error() { return vigResult; }
 
 void vig_check_fail() {
    if ( VIG_SUCCESS != vigResult )
@@ -50,15 +50,12 @@ void vig_check_fail() {
 
 bool vig_run( VcpTask t ) {
    vigResult = VIG_TASKERR;
-// vtl_ewrite("vigrun %p", t );   
    vcp_task_start( t );
-// vtl_ewrite("vigstart %d", vcp_error() );   
    if ( vcp_error() ) return false;
    while ( ! vcp_task_wait( t, TICK )) {
       ;
    }
-// vtl_ewrite("vigrun %d", vcp_error() );
-   if (( vigResult = vcp_error() )) return false;
+   if (( VCP_SUCCESS != vcp_error() )) return false;
    vigResult = VIG_SUCCESS;
    return true;
 }
@@ -101,17 +98,17 @@ bool vig_init( VcpVulcomp v ) {
 /// is vulimg inited
 bool vig_inited() {
    if ( ! vulimg.started ) {
-	  vigResult = VIG_INITERR;
-	  return false;
-   } 	
+      vigResult = VIG_INITERR;
+      return false;
+   }
    return true;
 }
 
 /// is image present
 bool vig_isimage( VigImage img ) {
    if ( ! img ) {
-	  vigResult = VIG_NOIMG;
-	  return false;
+      vigResult = VIG_NOIMG;
+      return false;
    }
    return true;
 }
@@ -145,7 +142,7 @@ uint32_t vig_pixel_size( VigPixel pix ) {
 	  case vix_8: case vix_g8: case vix_s8: return 8;
 	  case vix_rgb24: case vix_ybr24: return 24;
 	  case vix_rgba32: case vix_argb32: return 32;
-	  default: return 0; 
+	  default: return 0;
    }
 }
 
@@ -155,7 +152,7 @@ uint32_t vig_pixel_comps( VigPixel pix ) {
 	  case vix_8: case vix_g8: return 1;
 	  case vix_rgb24: case vix_ybr24: return 3;
 	  case vix_rgba32: case vix_argb32: return 4;
-	  default: return 0; 
+	  default: return 0;
    }
 }
 
@@ -234,15 +231,15 @@ bool vig_pixel_signed( VigPixel pix ) {
    }
 }
 
-bool vig_part_copy( VigImage src, VytURect prt, VigImage dst, 
-   VytUVec2 loc ) 
+bool vig_part_copy( VigImage src, VytURect prt, VigImage dst,
+   VytUVec2 loc )
 {
    if ( ! vig_inited() ) return false;
    vigResult = VIG_PIXELERR;
    if ( ! vig_pixel_same( src->pixel, dst->pixel )) return false;
    vigResult = VIG_SUCCESS;
    if ( 0 == prt->width || 0 == prt->height ) return true;
-	vigResult = VIG_COORDERR;
+   vigResult = VIG_COORDERR;
    uint32_t rw = prt->width;
    uint32_t rh = prt->height;
    if ( src->width < prt->left + rw ) return false;
@@ -329,7 +326,7 @@ uint32_t vig_vol8( VigPixel x ) {
       default: return 0;
    }
 }
-      
+
 
 bool vig_image_diff( VigImage a, VigImage b, VigImage dst ) {
    if ( ! vig_inited() ) return false;
@@ -675,12 +672,12 @@ bool vig_raw_write( VigImage img, void * stream, VytStreamOp write, bool pad ) {
       if ( ! vyt_block_op( stream, write, data, w ))
          return false;
       data += stride;
-   } 
+   }
    return true;
 }
 
-bool vig_part_diffsum( VigImage a, VytURect prt, VigImage b, 
-   VytUVec2 loc, uint64_t * diff ) 
+bool vig_part_diffsum( VigImage a, VytURect prt, VigImage b,
+   VytUVec2 loc, uint64_t * diff )
 {
    if ( ! vig_inited() ) return false;
    vigResult = VIG_PIXELERR;
@@ -715,7 +712,7 @@ bool vig_part_diffsum( VigImage a, VytURect prt, VigImage b,
    for ( int i=pars.width; 0<i; --i )
       *diff += *(p++);
    return true;
-}   
+}
 
 
 bool vig_image_avg( VigImage img, VigValue * pix ) {
@@ -765,7 +762,7 @@ static void vig_norm( VigHist h, VytU n ) {
    for (int i=0; i<n; ++i)
       h[i] /= m;
 }
-   
+
 
 bool vig_hist_create( VigImage img, VigHist horz, VigHist vert, bool norm ) {
    if ( ! vig_inited() ) return false;
@@ -797,8 +794,7 @@ bool vig_hist_create( VigImage img, VigHist horz, VigHist vert, bool norm ) {
       vig_norm( vert, h );
    }
    return true;
-}   
-
+}
 
 bool vig_image_add( VigImage src, VigValue pixel, VigImage dst ) {
    if ( ! vig_inited() ) return false;
@@ -818,7 +814,7 @@ bool vig_image_add( VigImage src, VigValue pixel, VigImage dst ) {
    if ( src->width != dst->width ) return false;
    if ( src->height != dst->height ) return false;
    struct Vig_AddParams pars = {
-	   .compCount = compCount, 
+	   .compCount = compCount,
       .pixel = pixel,
       .min = sgn ? -128 : 0,
       .max = sgn ? 127 : 255

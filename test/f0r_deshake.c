@@ -28,7 +28,7 @@ typedef struct Deshake {
 } * Deshake;
 
 int f0r_init() {
-   vul = vcp_init("f0r_deshake", VCP_VALIDATION | VCP_8BIT );
+   vul = vcp_init("f0r_deshake", VCP_VALIDATION | VCP_BIT8 );
    vcp_check_fail();
    vig_init( vul );
    vig_check_fail();

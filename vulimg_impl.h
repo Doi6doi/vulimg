@@ -76,7 +76,7 @@ struct Vig_Image {
 };
 
 extern struct Vig_Vulimg vulimg;
-extern int vigResult;
+extern VigResult vigResult;
 
 /// inicializálva van-e
 bool vig_inited();
