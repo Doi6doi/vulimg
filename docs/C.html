@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="part file">
+<div class="part">
+<h1>vulimg.h</h1>
+<div class="lbr"></div>
+
+<a href="index.html">Vulimg</a> is a <em>C</em> and <em>C++</em> library for
+low-level image manipulation through Vulkan.
+<div class="lbr"></div>
+
+The <code>vulimg.h</code> header is for the <em>C</em> part.
+It contains the <a href="#VigImage">VigImage</a> type, some simple
+auxiliary types and correspondent functions.
+<div class="lbr"></div>
+
+If compiled with a C++ compiler, all the declarations are in
+the <code>vigc</code> namespace
+</div>
+<div class="hr"></div><div class="part">
+<h2>Contents</h2><div class="br"></div><div class="part toc">
+<div class="part tocItem">
+<code><a href="#VigCoord">VigCoord</a></code>
+Image x or y coordinate
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#VigValue">VigValue</a></code>
+Pixel value (all components)
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#Vig_Pixel">Vig_Pixel</a></code>
+Pixel kind
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#Vig_Plane">Vig_Plane</a></code>
+An image plane
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#VigHist">VigHist</a></code>
+Histogram data of an image
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#VigVulimg">VigVulimg</a></code>
+Vulimg system
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#VigImage">VigImage</a></code>
+Image usable by GPU
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#VigTrans">VigTrans</a></code>
+2d Affine transformation
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#Vig_Result">Vig_Result</a></code>
+Vulimg error values
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#VIG_MUCH">VIG_MUCH</a></code>
+Too large value
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_error">vig_error</a></code>
+Last error code
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_check_fail">vig_check_fail</a></code>
+Check result and fail if not ok
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_init">vig_init</a></code>
+initialize image operations
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_done">vig_done</a></code>
+terminate image operations
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_pixel_size">vig_pixel_size</a></code>
+Pixel size in bits
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_create">vig_image_create</a></code>
+Create new image
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_pixel">vig_image_pixel</a></code>
+Get image pixel kind
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_width">vig_image_width</a></code>
+Get image width
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_height">vig_image_height</a></code>
+Get image height
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_address">vig_image_address</a></code>
+Get image data address
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_stride">vig_image_stride</a></code>
+Get image stride in bytes
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_storage">vig_image_storage</a></code>
+Get image storage
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_free">vig_image_free</a></code>
+Destroy image
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_copy">vig_image_copy</a></code>
+Copy whole image
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_plane">vig_image_plane</a></code>
+Extract plane from image
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_join">vig_image_join</a></code>
+Set plane of an image
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_transform">vig_image_transform</a></code>
+Transform image
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_add">vig_image_add</a></code>
+Add pixel values
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_diff">vig_image_diff</a></code>
+difference of two images
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_image_avg">vig_image_avg</a></code>
+Average pixel
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_part_copy">vig_part_copy</a></code>
+Copy image part
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_part_fill">vig_part_fill</a></code>
+Fill area with pixel
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_pyr_create">vig_pyr_create</a></code>
+Create pyramid of an image
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_hist_create">vig_hist_create</a></code>
+Create horizontal and vertical histogram of an image
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_draw_rect">vig_draw_rect</a></code>
+Draw rectangle
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_raw_read">vig_raw_read</a></code>
+Read raw image
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_raw_write">vig_raw_write</a></code>
+Write raw image
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_bmp_read">vig_bmp_read</a></code>
+Read BMP image
+</div>
+<div class="br"></div><div class="part tocItem">
+<code><a href="#vig_bmp_write">vig_bmp_write</a></code>
+Write BMP image
+</div>
+
+</div>
+
+</div>
+<div class="hr"></div><div class="part">
+<h2>Details</h2>
+</div>
+<div class="hr"></div><div class="part type" id="VigCoord">
+<pre><code>VigCoord</code></pre>
+<div class="br"></div>Image x or y coordinate
+</div>
+<div class="hr"></div><div class="part type" id="VigValue">
+<pre><code>VigValue</code></pre>
+<div class="br"></div>Pixel value (all components)
+</div>
+<div class="hr"></div><div class="part enum" id="Vig_Pixel">
+<pre><code>enum Vig_Pixel</code></pre>
+<div class="br"></div>Pixel kind<div class="br"></div><div class="part enumitem">
+<code>vix_Unknown</code> Unkown
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vix_1</code> Black and White 1 bit
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vix_8</code> Custom 8 bit data
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vix_g8</code> Grayscale 8 bit
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vix_s8</code> Custom signed 8-bit data
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vix_rgb24</code> RGB 24 bit
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vix_ybr24</code> YCbCr 24 bit
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vix_rgba32</code> RGBA 32 bit
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vix_argb32</code> ARGB 32 bit
+</div>
+
+</div>
+<div class="hr"></div><div class="part enum" id="Vig_Plane">
+<pre><code>enum Vig_Plane</code></pre>
+<div class="br"></div>An image plane<div class="br"></div><div class="part enumitem">
+<code>vpl_Unknown</code> Unknown
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vpl_R</code> Red plane of RGB
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vpl_G</code> Green plane of RGB
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vpl_B</code> Blue plane of RGB
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vpl_Y</code> Y plane of YCbCr
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vpl_Cb</code> Cb plane of YCbCr
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>vpl_Cr</code> Cr plane of YCbCr
+</div>
+
+</div>
+<div class="hr"></div><div class="part type" id="VigHist">
+<pre><code>VigHist</code></pre>
+<div class="br"></div>Histogram data of an image
+</div>
+<div class="hr"></div><div class="part type" id="VigVulimg">
+<pre><code>VigVulimg</code></pre>
+<div class="br"></div>Vulimg system
+</div>
+<div class="hr"></div><div class="part type" id="VigImage">
+<pre><code>VigImage</code></pre>
+<div class="br"></div>Image usable by GPU
+</div>
+<div class="hr"></div><div class="part type" id="VigTrans">
+<pre><code>VigTrans</code></pre>
+<div class="br"></div>2d Affine transformation
+</div>
+<div class="hr"></div><div class="part enum" id="Vig_Result">
+<pre><code>enum Vig_Result</code></pre>
+<div class="br"></div>Vulimg error values<div class="br"></div><div class="part enumitem">
+<code>VIG_SUCCESS</code> Successful execution
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>VIG_HOSTMEM</code> Not enough host memory
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>VIG_INITERR</code> Initialization error
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>VIG_STORAGEERR</code> Storage error
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>VIG_COORDERR</code> Coordinate error or mismatch
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>VIG_PIXELERR</code> Pixel error or mismatch
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>VIG_TASKERR</code> Task error
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>VIG_NOIMG</code> No image given
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>VIG_BMPERR</code> BMP error
+</div>
+<div class="br"></div><div class="part enumitem">
+<code>VIG_STREAMERR</code> Stream error
+</div>
+
+</div>
+<div class="hr"></div><div class="part macro" id="VIG_MUCH">
+<pre><code>VIG_MUCH</code></pre>
+<div class="br"></div>Too large value
+</div>
+<div class="hr"></div><div class="part func" id="vig_error">
+<pre><code>VigResult vig_error()</code></pre>
+<div class="br"></div>Last error code<div class="br"></div><div class="part return">
+<code>return</code> Code
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_check_fail">
+<pre><code>void vig_check_fail()</code></pre>
+<div class="br"></div>Check result and fail if not ok
+</div>
+<div class="hr"></div><div class="part func" id="vig_init">
+<pre><code>bool vig_init( VcpVulcomp v )</code></pre>
+<div class="br"></div>initialize image operations<div class="br"></div><div class="part param">
+<code>v</code> Vulcmp subsystem
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_done">
+<pre><code>void vig_done()</code></pre>
+<div class="br"></div>terminate image operations
+</div>
+<div class="hr"></div><div class="part func" id="vig_pixel_size">
+<pre><code>uint32_t vig_pixel_size( VigPixel pixel )</code></pre>
+<div class="br"></div>Pixel size in bits<div class="br"></div><div class="part param">
+<code>pixel</code> Pixel kind
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> Size in bits
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_create">
+<pre><code>VigImage vig_image_create( VigCoord width, VigCoord height, VigPixel pixel )</code></pre>
+<div class="br"></div>Create new image<div class="br"></div><div class="part param">
+<code>width</code> Width of image in pixels
+</div>
+<div class="br"></div><div class="part param">
+<code>heiht</code> Height of image in pixels
+</div>
+<div class="br"></div><div class="part param">
+<code>pixel</code> Pixel kind
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> Image handle or NULL on error
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_pixel">
+<pre><code>VigPixel vig_image_pixel( VigImage img )</code></pre>
+<div class="br"></div>Get image pixel kind<div class="br"></div><div class="part param">
+<code>img</code> Handle
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> Pixel kind
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_width">
+<pre><code>VigCoord vig_image_width( VigImage )</code></pre>
+<div class="br"></div>Get image width<div class="br"></div><div class="part param">
+<code>img</code> Handle
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> Width in pixels
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_height">
+<pre><code>VigCoord vig_image_height( VigImage )</code></pre>
+<div class="br"></div>Get image height<div class="br"></div><div class="part param">
+<code>img</code> Handle
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> Height in pixels
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_address">
+<pre><code>void * vig_image_address( VigImage img )</code></pre>
+<div class="br"></div>Get image data address<div class="br"></div><div class="part param">
+<code>img</code> Handle
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> CPU-address of image data
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_stride">
+<pre><code>VigCoord vig_image_stride( VigImage img )</code></pre>
+<div class="br"></div>Get image stride in bytes
+Image rows are stored 4-byte padded for GPU performance.
+Stride is the difference in bytes between two rows in memory<div class="br"></div><div class="part param">
+<code>img</code> Handle
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> Stride in bytes
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_storage">
+<pre><code>VcpStorage vig_image_storage( VigImage img )</code></pre>
+<div class="br"></div>Get image storage<div class="br"></div><div class="part param">
+<code>img</code> Handle
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> Vulcmp storage handle of image
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_free">
+<pre><code>void vig_image_free( VigImage img )</code></pre>
+<div class="br"></div>Destroy image
+Usually not needed as <a href="#vig_done">vig_done</a> frees up all resources.
+You can call it to save GPU memory if the image is no longer needed.<div class="br"></div><div class="part param">
+<code>img</code> Handle
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_copy">
+<pre><code>bool vig_image_copy( VigImage src, VigImage dst )</code></pre>
+<div class="br"></div>Copy whole image
+Copies <code>src</code> into <code>dst</code>.
+Sizes must match and pixel kinds must be compatible.<div class="br"></div><div class="part param">
+<code>src</code> Source image
+</div>
+<div class="br"></div><div class="part param">
+<code>dst</code> Destination image
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_plane">
+<pre><code>bool vig_image_plane( VigImage src, VigPlane plane, VigImage dst )</code></pre>
+<div class="br"></div>Extract plane from image
+Extracts <code>plane</code> from <code>src</code> and copies it into <code>dst</code>.
+Sizes must match and pixel kinds must be compatible.<div class="br"></div><div class="part param">
+<code>src</code> Source image
+</div>
+<div class="br"></div><div class="part param">
+<code>plane</code> Plane to extract
+</div>
+<div class="br"></div><div class="part param">
+<code>dst</code> Destination image
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_join">
+<pre><code>bool vig_image_join( VigImage dst, VigImage src, VigPlane plane )</code></pre>
+<div class="br"></div>Set plane of an image
+Sets <code>src</code> as <code>plane</code> plane of <code>dst</code>
+Sizes must match and pixel kinds must be compatible.<div class="br"></div><div class="part param">
+<code>src</code> Source image
+</div>
+<div class="br"></div><div class="part param">
+<code>plane</code> Plane to set
+</div>
+<div class="br"></div><div class="part param">
+<code>dst</code> Destination image
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_transform">
+<pre><code>bool vig_image_transform( VigImage src, VigImage dst, VigTrans trans )</code></pre>
+<div class="br"></div>Transform image
+Do an affine (scale, rotate, skew, shift) transformation.
+Pixel kinds must be compatible.<div class="br"></div><div class="part param">
+<code>src</code> Source image
+</div>
+<div class="br"></div><div class="part param">
+<code>dst</code> Destination image
+</div>
+<div class="br"></div><div class="part param">
+<code>trans</code> Transformation
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_add">
+<pre><code>bool vig_image_add( VigImage src, VigValue pixel, VigImage dst )</code></pre>
+<div class="br"></div>Add pixel values
+Adds <code>pixel</code> to all pixels of <code>src</code> and outputs <code>dst</code>.
+Results are clamped on each component.
+Sizes must match and pixel kinds must be compatible.<div class="br"></div><div class="part param">
+<code>src</code> Source image
+</div>
+<div class="br"></div><div class="part param">
+<code>pixel</code> Pixel value to add
+</div>
+<div class="br"></div><div class="part param">
+<code>dst</code> Destination image
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_diff">
+<pre><code>bool vig_image_diff( VigImage a, VigImage b, VigImage dst )</code></pre>
+<div class="br"></div>difference of two images
+Component-wise difference of <code>a</code> and <code>b</code> resulting <code>dst</code>.
+Results are component-wise absolute value by pixels.
+Sizes must match and pixel kinds must be compatible.<div class="br"></div><div class="part param">
+<code>a</code> First image
+</div>
+<div class="br"></div><div class="part param">
+<code>b</code> Second image
+</div>
+<div class="br"></div><div class="part param">
+<code>dst</code> Destination image
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_image_avg">
+<pre><code>bool vig_image_avg( VigImage img, VigValue * pix )</code></pre>
+<div class="br"></div>Average pixel
+Returns component-wise average of all pixels in <code>img</code><div class="br"></div><div class="part param">
+<code>img</code> Handle
+</div>
+<div class="br"></div><div class="part param">
+<code>pix</code> Return value
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_part_copy">
+<pre><code>bool vig_part_copy( VigImage src, VytURect prt, VigImage dst, VytUVec2 loc )</code></pre>
+<div class="br"></div>Copy image part
+Copies <code>prt</code> part of <code>src</code> into <code>loc</code> location of <code>dst</code>.
+Pixel kinds must be compatible, <code>prt</code> must be inside <code>img</code> and the
+resulting are must be inside <code>dst</code><div class="br"></div><div class="part param">
+<code>src</code> Source image
+</div>
+<div class="br"></div><div class="part param">
+<code>prt</code> Part of <code>src</code> to be copied
+</div>
+<div class="br"></div><div class="part param">
+<code>dst</code> Destination image
+</div>
+<div class="br"></div><div class="part param">
+<code>loc</code> Top left corner of copied area in <code>dst</code>
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part enumitem">
+<code>bool</code> Sum of difference between parts of images
+Sum of all the differences between component values of
+<code>prt</code> area in <code>a</code> and <code>prt</code>+<code>loc</code> area in <code>b</code>.
+Areas must be inside images and pixel kinds must be compatible <div class="part param">
+<code>a</code> First image
+</div>
+<div class="hr"></div><div class="part param">
+<code>prt</code> Area of <code>a</code> to be compared
+</div>
+<div class="hr"></div><div class="part param">
+<code>b</code> Second image
+</div>
+<div class="hr"></div><div class="part param">
+<code>`loc`</code> Top left corner of area of <code>b</code> to be compared
+</div>
+<div class="hr"></div><div class="part param">
+<code>diff</code> Return value, sum of all component-differences
+</div>
+<div class="hr"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_part_fill">
+<pre><code>bool vig_part_fill( VigImage img, VytURect prt, VigValue pix )</code></pre>
+<div class="br"></div>Fill area with pixel<div class="br"></div><div class="part param">
+<code>img</code> Image handle
+</div>
+<div class="br"></div><div class="part param">
+<code>prt</code> Area to fill. Must be inside <code>img</code>
+</div>
+<div class="br"></div><div class="part param">
+<code>pix</code> Pixel value
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_pyr_create">
+<pre><code>bool vig_pyr_create( VigImage img, VigImage pyr )</code></pre>
+<div class="br"></div>Create pyramid of an image
+A pyramid is a /2, a /4, ... etc. scaled versions below each other
+Width of <code>pyr</code> must be at least width of <code>img</code>
+Height of <code>pyr</code> must be at least height of <code>img</code>
+Pixel kinds must be compatible.<div class="br"></div><div class="part param">
+<code>img</code> Source image
+</div>
+<div class="br"></div><div class="part param">
+<code>pyr</code> Destination image for the pyramid
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part enumitem">
+<code>bool</code> Calculate delta (move) between two images using their pyramids <div class="part param">
+<code>a</code> First image
+</div>
+<div class="hr"></div><div class="part param">
+<code>b</code> Second image
+</div>
+<div class="hr"></div><div class="part param">
+<code>pyra</code> Pyramid of a
+</div>
+<div class="hr"></div><div class="part param">
+<code>pyrb</code> Pyramid of b
+</div>
+<div class="hr"></div><div class="part param">
+<code>limit</code> Fraction of differences between images to give up (e.g 0.1 = 10%)
+</div>
+<div class="hr"></div><div class="part param">
+<code>dx</code> Return value: X shift or <a href="#VIG_MUCH">VIG_MUCH</a> if images are too different
+</div>
+<div class="hr"></div><div class="part param">
+<code>dy</code> Return value: Y shift or <a href="#VIG_MUCH">VIG_MUCH</a> if images are too different
+</div>
+<div class="hr"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_hist_create">
+<pre><code>bool vig_hist_create( VigImage img, VigHist horz, VigHist vert, bool norm )</code></pre>
+<div class="br"></div>Create horizontal and vertical histogram of an image
+The histogram is an averaged value for every row or column of the image<div class="br"></div><div class="part param">
+<code>img</code> Source image
+</div>
+<div class="br"></div><div class="part param">
+<code>horz</code> Return value: Horizontal histogram. Must have img.width elements
+</div>
+<div class="br"></div><div class="part param">
+<code>vert</code> Return value: Vertical histogram. Must have img.height elements
+</div>
+<div class="br"></div><div class="part param">
+<code>norm</code> On <code>true</code> histograms will have noramlized (0-1) values
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_draw_rect">
+<pre><code>bool vig_draw_rect( VigImage img, VytURect part, VigValue pixel )</code></pre>
+<div class="br"></div>Draw rectangle
+Draws a rectangle frame<div class="br"></div><div class="part param">
+<code>img</code> Image to draw to
+</div>
+<div class="br"></div><div class="part param">
+<code>part</code> The rectangle
+</div>
+<div class="br"></div><div class="part param">
+<code>pixel</code> Pixel value to draw rectangle with
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_raw_read">
+<pre><code>bool vig_raw_read( VigImage dst, void * stream, VytStreamOp read, bool pad )</code></pre>
+<div class="br"></div>Read raw image
+Read raw image from <code>stream</code> containing data in pixel format of <code>dst</code><div class="br"></div><div class="part param">
+<code>dst</code> Destitaion image
+</div>
+<div class="br"></div><div class="part param">
+<code>stream</code> Handle of stream containing data
+</div>
+<div class="br"></div><div class="part param">
+<code>read</code> Read operation on <code>stream</code>
+</div>
+<div class="br"></div><div class="part param">
+<code>pad</code> Is data 4-byte padded in <code>stream</code>
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_raw_write">
+<pre><code>bool vig_raw_write( VigImage src, void * stream, VytStreamOp write, bool pad )</code></pre>
+<div class="br"></div>Write raw image
+Write raw image data to <code>stream</code><div class="br"></div><div class="part param">
+<code>src</code> Source image
+</div>
+<div class="br"></div><div class="part param">
+<code>stream</code> Handle of stream to write to
+</div>
+<div class="br"></div><div class="part param">
+<code>write</code> Write operation on <code>stream</code>
+</div>
+<div class="br"></div><div class="part param">
+<code>pad</code> Write each row 4-byte padded
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_bmp_read">
+<pre><code>VigImage vig_bmp_read( void * stream, VytStreamOp read )</code></pre>
+<div class="br"></div>Read BMP image
+Read an uncompressed BMP from a stream<div class="br"></div><div class="part param">
+<code>stream</code> Handle of stream to read from
+</div>
+<div class="br"></div><div class="part param">
+<code>read</code> Read operation on <code>stream</code>
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> Image read or NULL on error
+</div>
+
+</div>
+<div class="hr"></div><div class="part func" id="vig_bmp_write">
+<pre><code>bool vig_bmp_write( VigImage img, void * stream, VytStreamOp write )</code></pre>
+<div class="br"></div>Write BMP image
+Write image as uncompressed BMP to <code>stream</code>
+Pixel kind must be BMP-compatible<div class="br"></div><div class="part param">
+<code>img</code> Image handle
+</div>
+<div class="br"></div><div class="part param">
+<code>stream</code> Handle of stream to write to
+</div>
+<div class="br"></div><div class="part param">
+<code>write</code> Write operation on <code>stream</code>
+</div>
+<div class="br"></div><div class="part return">
+<code>return</code> <code>true</code> on success
+</div>
+
+</div>
+
+</div>
+
+</body></html>

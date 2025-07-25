@@ -1,0 +1,17 @@
+/**
+
+# [Vulimg](index) Usage
+
+The usage scheme is the same in both [C] and [C++] versions:
+
+- Initialize the system by creating a `[Vulimg](Cpp#Vulimg)` object
+
+- Create `[Image](Cpp#Image)` object(s). You can load them from BMP or RAW files 
+  or fill the data directly through their [address](Cpp#Image.address)
+
+- Use conversion or mainpulation functions of your liking
+
+- You can write results as BMP or RAW files or just use the data through their
+  [address](Cpp#Image.address)
+
+You can find full examples in the test directory
